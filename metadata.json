@@ -1,0 +1,8 @@
+{
+  "name": "Bimbel Cerdas",
+  "description": "Sistem Informasi Manajemen Bimbel Cerdas — Portal Publik, Orang Tua, Tutor, Admin, dan Pemilik.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

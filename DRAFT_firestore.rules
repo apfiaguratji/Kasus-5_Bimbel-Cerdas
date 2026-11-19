@@ -1,0 +1,615 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Primitive Helpers ---
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isBootstrappedAdmin() {
+      return isVerifiedUser()
+        && request.auth.token.email is string
+        && request.auth.token.email.lower() in [
+          '12410331@student.unklab.ac.id',
+          's22319041@student.unklab.ac.id',
+          '12410503@student.unklab.ac.id',
+          '12410384@student.unklab.ac.id',
+          '12410388@student.unklab.ac.id'
+        ];
+    }
+
+    function userExists() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function currentUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isAdmin() {
+      return isVerifiedUser() && (
+        isBootstrappedAdmin() ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        (userExists() && currentUserRole() == 'admin')
+      );
+    }
+
+    function isPemilik() {
+      return isVerifiedUser() && (
+        isBootstrappedAdmin() ||
+        (userExists() && currentUserRole() == 'pemilik')
+      );
+    }
+
+    function isTutor() {
+      return isVerifiedUser() && (
+        isAdmin() ||
+        (userExists() && currentUserRole() == 'tutor')
+      );
+    }
+
+    function isStaff() {
+      return isAdmin() || isPemilik() || isTutor();
+    }
+
+    function isNonEmptyStr(val, maxLen) {
+      return val is string && val.size() >= 1 && val.size() <= maxLen;
+    }
+
+    function isOptStr(data, field, maxLen) {
+      return !(field in data) || (data[field] is string && data[field].size() <= maxLen);
+    }
+
+    // --- Validation Blueprints ---
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'nama', 'email', 'role', 'statusAktif', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'nama', 'email', 'role', 'noTelepon', 'alamat', 'linkedTutorId', 'statusAktif', 'createdAt', 'updatedAt'])
+        && isValidId(data.uid)
+        && isNonEmptyStr(data.nama, 120)
+        && isNonEmptyStr(data.email, 160)
+        && data.role in ['orang_tua', 'tutor', 'admin', 'pemilik']
+        && isOptStr(data, 'noTelepon', 32)
+        && isOptStr(data, 'alamat', 300)
+        && isOptStr(data, 'linkedTutorId', 128)
+        && data.statusAktif is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidProgram(data) {
+      return data.keys().hasAll(['namaProgram', 'jenjang', 'biayaSpp', 'biayaPendaftaran', 'frekuensiMingguan', 'durasiMenit', 'deskripsi', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['namaProgram', 'jenjang', 'biayaSpp', 'biayaPendaftaran', 'frekuensiMingguan', 'durasiMenit', 'deskripsi', 'createdAt', 'updatedAt'])
+        && isNonEmptyStr(data.namaProgram, 100)
+        && data.jenjang in ['SD', 'SMP', 'SMA', 'UTBK']
+        && data.biayaSpp is number && data.biayaSpp >= 0
+        && data.biayaPendaftaran is number && data.biayaPendaftaran >= 0
+        && data.frekuensiMingguan is number && data.frekuensiMingguan >= 1 && data.frekuensiMingguan <= 7
+        && data.durasiMenit is number && data.durasiMenit >= 30 && data.durasiMenit <= 240
+        && isNonEmptyStr(data.deskripsi, 500)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidTutor(data) {
+      return data.keys().hasAll(['namaTutor', 'email', 'noTelepon', 'bidangKeahlian', 'statusAktif', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['namaTutor', 'email', 'noTelepon', 'alamat', 'bidangKeahlian', 'uid', 'statusAktif', 'createdAt', 'updatedAt'])
+        && isNonEmptyStr(data.namaTutor, 120)
+        && isNonEmptyStr(data.email, 160)
+        && isNonEmptyStr(data.noTelepon, 32)
+        && isOptStr(data, 'alamat', 300)
+        && isNonEmptyStr(data.bidangKeahlian, 160)
+        && isOptStr(data, 'uid', 128)
+        && data.statusAktif is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidClass(data) {
+      return data.keys().hasAll(['idProgram', 'namaProgram', 'jenjang', 'namaKelas', 'kapasitasMaksimal', 'jumlahMinimal', 'jumlahTerisi', 'statusKelas', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['idProgram', 'namaProgram', 'jenjang', 'namaKelas', 'kapasitasMaksimal', 'jumlahMinimal', 'jumlahTerisi', 'statusKelas', 'createdAt', 'updatedAt'])
+        && isValidId(data.idProgram)
+        && isNonEmptyStr(data.namaProgram, 100)
+        && data.jenjang in ['SD', 'SMP', 'SMA', 'UTBK']
+        && isNonEmptyStr(data.namaKelas, 100)
+        && data.kapasitasMaksimal is number && data.kapasitasMaksimal >= 1 && data.kapasitasMaksimal <= 20
+        && data.jumlahMinimal is number && data.jumlahMinimal >= 1 && data.jumlahMinimal <= 10
+        && data.jumlahTerisi is number && data.jumlahTerisi >= 0 && data.jumlahTerisi <= 20
+        && data.statusKelas in ['Menunggu Minimal', 'Aktif', 'Penuh', 'Tidak Aktif']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidSchedule(data) {
+      return data.keys().hasAll(['idKelas', 'namaKelas', 'idTutor', 'namaTutor', 'hari', 'jamMulai', 'jamSelesai', 'durasiMenit', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['idKelas', 'namaKelas', 'idTutor', 'namaTutor', 'hari', 'jamMulai', 'jamSelesai', 'durasiMenit', 'ruangan', 'createdAt', 'updatedAt'])
+        && isValidId(data.idKelas)
+        && isNonEmptyStr(data.namaKelas, 100)
+        && isValidId(data.idTutor)
+        && isNonEmptyStr(data.namaTutor, 120)
+        && data.hari in ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu']
+        && isNonEmptyStr(data.jamMulai, 10)
+        && isNonEmptyStr(data.jamSelesai, 10)
+        && data.durasiMenit is number && data.durasiMenit >= 30 && data.durasiMenit <= 240
+        && isOptStr(data, 'ruangan', 60)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidStudent(data) {
+      return data.keys().hasAll(['parentUid', 'parentName', 'namaSiswa', 'tanggalLahir', 'jenisKelamin', 'asalSekolah', 'jenjang', 'idProgram', 'namaProgram', 'idKelas', 'namaKelas', 'urutanAnak', 'statusSiswa', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['parentUid', 'parentName', 'parentPhone', 'namaSiswa', 'tanggalLahir', 'jenisKelamin', 'asalSekolah', 'jenjang', 'idProgram', 'namaProgram', 'idKelas', 'namaKelas', 'urutanAnak', 'statusSiswa', 'createdAt', 'updatedAt'])
+        && isValidId(data.parentUid)
+        && isNonEmptyStr(data.parentName, 120)
+        && isOptStr(data, 'parentPhone', 32)
+        && isNonEmptyStr(data.namaSiswa, 120)
+        && isNonEmptyStr(data.tanggalLahir, 20)
+        && data.jenisKelamin in ['L', 'P']
+        && isNonEmptyStr(data.asalSekolah, 120)
+        && data.jenjang in ['SD', 'SMP', 'SMA', 'UTBK']
+        && isValidId(data.idProgram)
+        && isNonEmptyStr(data.namaProgram, 100)
+        && isValidId(data.idKelas)
+        && isNonEmptyStr(data.namaKelas, 100)
+        && data.urutanAnak is number && data.urutanAnak >= 1 && data.urutanAnak <= 20
+        && data.statusSiswa in ['Aktif', 'Menunggu Kelas', 'Daftar Tunggu', 'Nonaktif']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidRegistration(data) {
+      return data.keys().hasAll(['parentUid', 'parentName', 'idSiswa', 'namaSiswa', 'idProgram', 'namaProgram', 'idKelas', 'namaKelas', 'biayaPendaftaran', 'statusBayarDaftar', 'statusPendaftaran', 'tanggalDaftar', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['parentUid', 'parentName', 'idSiswa', 'namaSiswa', 'idProgram', 'namaProgram', 'idKelas', 'namaKelas', 'biayaPendaftaran', 'statusBayarDaftar', 'statusPendaftaran', 'tanggalDaftar', 'createdAt', 'updatedAt'])
+        && isValidId(data.parentUid)
+        && isNonEmptyStr(data.parentName, 120)
+        && isValidId(data.idSiswa)
+        && isNonEmptyStr(data.namaSiswa, 120)
+        && isValidId(data.idProgram)
+        && isNonEmptyStr(data.namaProgram, 100)
+        && isValidId(data.idKelas)
+        && isNonEmptyStr(data.namaKelas, 100)
+        && data.biayaPendaftaran is number && data.biayaPendaftaran == 100000
+        && data.statusBayarDaftar in ['Belum Bayar', 'Lunas']
+        && data.statusPendaftaran in ['Menunggu Verifikasi', 'Aktif', 'Menunggu Kelas', 'Daftar Tunggu', 'Ditolak']
+        && isNonEmptyStr(data.tanggalDaftar, 20)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidWaitlist(data) {
+      return data.keys().hasAll(['parentUid', 'idSiswa', 'namaSiswa', 'idProgram', 'idKelas', 'namaKelas', 'urutanAntrean', 'statusAntrean', 'tanggalMasuk', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['parentUid', 'idSiswa', 'namaSiswa', 'idProgram', 'idKelas', 'namaKelas', 'urutanAntrean', 'statusAntrean', 'tanggalMasuk', 'createdAt', 'updatedAt'])
+        && isValidId(data.parentUid)
+        && isValidId(data.idSiswa)
+        && isNonEmptyStr(data.namaSiswa, 120)
+        && isValidId(data.idProgram)
+        && isValidId(data.idKelas)
+        && isNonEmptyStr(data.namaKelas, 100)
+        && data.urutanAntrean is number && data.urutanAntrean >= 1
+        && data.statusAntrean in ['Menunggu', 'Ditempatkan', 'Dibatalkan']
+        && isNonEmptyStr(data.tanggalMasuk, 20)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidStudentAttendance(data) {
+      return data.keys().hasAll(['parentUid', 'idJadwal', 'idKelas', 'namaKelas', 'idTutor', 'tanggal', 'idSiswa', 'namaSiswa', 'statusKehadiran', 'createdAt'])
+        && data.keys().hasOnly(['parentUid', 'idJadwal', 'idKelas', 'namaKelas', 'idTutor', 'tanggal', 'idSiswa', 'namaSiswa', 'statusKehadiran', 'catatan', 'createdAt'])
+        && isValidId(data.parentUid)
+        && isValidId(data.idJadwal)
+        && isValidId(data.idKelas)
+        && isNonEmptyStr(data.namaKelas, 100)
+        && isValidId(data.idTutor)
+        && isNonEmptyStr(data.tanggal, 20)
+        && isValidId(data.idSiswa)
+        && isNonEmptyStr(data.namaSiswa, 120)
+        && data.statusKehadiran in ['Hadir', 'Tidak Hadir']
+        && isOptStr(data, 'catatan', 250)
+        && data.createdAt is timestamp;
+    }
+
+    function isValidTutorAttendance(data) {
+      return data.keys().hasAll(['idJadwal', 'idKelas', 'namaKelas', 'tanggal', 'idTutorAsli', 'idTutorMengajar', 'namaTutorMengajar', 'isPengganti', 'statusHadir', 'durasiMenit', 'honorSesi', 'createdAt'])
+        && data.keys().hasOnly(['idJadwal', 'idKelas', 'namaKelas', 'tanggal', 'idTutorAsli', 'idTutorMengajar', 'namaTutorMengajar', 'isPengganti', 'statusHadir', 'durasiMenit', 'honorSesi', 'createdAt'])
+        && isValidId(data.idJadwal)
+        && isValidId(data.idKelas)
+        && isNonEmptyStr(data.namaKelas, 100)
+        && isNonEmptyStr(data.tanggal, 20)
+        && isValidId(data.idTutorAsli)
+        && isValidId(data.idTutorMengajar)
+        && isNonEmptyStr(data.namaTutorMengajar, 120)
+        && data.isPengganti is bool
+        && data.statusHadir is bool
+        && data.durasiMenit is number && data.durasiMenit == 90
+        && data.honorSesi is number && (data.honorSesi == 75000 || data.honorSesi == 0)
+        && data.createdAt is timestamp;
+    }
+
+    function isValidInvoice(data) {
+      return data.keys().hasAll(['parentUid', 'idSiswa', 'namaSiswa', 'idProgram', 'namaProgram', 'bulan', 'tahun', 'periodeLabel', 'nominalDasar', 'diskonPersen', 'nominalDiskon', 'jumlahTagihan', 'jatuhTempo', 'statusTagihan', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['parentUid', 'idSiswa', 'namaSiswa', 'idProgram', 'namaProgram', 'bulan', 'tahun', 'periodeLabel', 'nominalDasar', 'diskonPersen', 'nominalDiskon', 'jumlahTagihan', 'jatuhTempo', 'statusTagihan', 'createdAt', 'updatedAt'])
+        && isValidId(data.parentUid)
+        && isValidId(data.idSiswa)
+        && isNonEmptyStr(data.namaSiswa, 120)
+        && isValidId(data.idProgram)
+        && isNonEmptyStr(data.namaProgram, 100)
+        && data.bulan is number && data.bulan >= 1 && data.bulan <= 12
+        && data.tahun is number && data.tahun >= 2024 && data.tahun <= 2100
+        && isNonEmptyStr(data.periodeLabel, 40)
+        && data.nominalDasar is number && data.nominalDasar >= 0
+        && data.diskonPersen is number && (data.diskonPersen == 0 || data.diskonPersen == 10)
+        && data.nominalDiskon is number && data.nominalDiskon >= 0
+        && data.jumlahTagihan is number && data.jumlahTagihan >= 0
+        && isNonEmptyStr(data.jatuhTempo, 20)
+        && data.statusTagihan in ['Belum Bayar', 'Lunas', 'Tunggakan']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidPayment(data) {
+      return data.keys().hasAll(['parentUid', 'idTagihan', 'idSiswa', 'namaSiswa', 'jenisPembayaran', 'jumlahBayar', 'metodeBayar', 'tanggalBayar', 'dicatatOleh', 'nomorKuitansi', 'createdAt'])
+        && data.keys().hasOnly(['parentUid', 'idTagihan', 'idSiswa', 'namaSiswa', 'jenisPembayaran', 'jumlahBayar', 'metodeBayar', 'tanggalBayar', 'dicatatOleh', 'nomorKuitansi', 'createdAt'])
+        && isValidId(data.parentUid)
+        && isValidId(data.idTagihan)
+        && isValidId(data.idSiswa)
+        && isNonEmptyStr(data.namaSiswa, 120)
+        && data.jenisPembayaran in ['SPP', 'Pendaftaran']
+        && data.jumlahBayar is number && data.jumlahBayar >= 0
+        && data.metodeBayar in ['Transfer Bank', 'QRIS', 'Tunai']
+        && isNonEmptyStr(data.tanggalBayar, 20)
+        && isNonEmptyStr(data.dicatatOleh, 120)
+        && isNonEmptyStr(data.nomorKuitansi, 60)
+        && data.createdAt is timestamp;
+    }
+
+    function isValidReceipt(data) {
+      return data.keys().hasAll(['nomorKuitansi', 'parentUid', 'idPembayaran', 'idTagihan', 'namaSiswa', 'namaOrangTua', 'jenisPembayaran', 'periode', 'nominalDasar', 'diskonPersen', 'jumlahBayar', 'metodeBayar', 'tanggalBayar', 'adminPencatat', 'createdAt'])
+        && data.keys().hasOnly(['nomorKuitansi', 'parentUid', 'idPembayaran', 'idTagihan', 'namaSiswa', 'namaOrangTua', 'jenisPembayaran', 'periode', 'nominalDasar', 'diskonPersen', 'jumlahBayar', 'metodeBayar', 'tanggalBayar', 'adminPencatat', 'createdAt'])
+        && isNonEmptyStr(data.nomorKuitansi, 60)
+        && isValidId(data.parentUid)
+        && isValidId(data.idPembayaran)
+        && isValidId(data.idTagihan)
+        && isNonEmptyStr(data.namaSiswa, 120)
+        && isNonEmptyStr(data.namaOrangTua, 120)
+        && data.jenisPembayaran in ['SPP', 'Pendaftaran']
+        && isNonEmptyStr(data.periode, 50)
+        && data.nominalDasar is number && data.nominalDasar >= 0
+        && data.diskonPersen is number && data.diskonPersen >= 0
+        && data.jumlahBayar is number && data.jumlahBayar >= 0
+        && isNonEmptyStr(data.metodeBayar, 40)
+        && isNonEmptyStr(data.tanggalBayar, 20)
+        && isNonEmptyStr(data.adminPencatat, 120)
+        && data.createdAt is timestamp;
+    }
+
+    function isValidNotification(data) {
+      return data.keys().hasAll(['parentUid', 'idSiswa', 'judul', 'pesan', 'kategori', 'sudahDibaca', 'createdAt'])
+        && data.keys().hasOnly(['parentUid', 'idSiswa', 'judul', 'pesan', 'kategori', 'sudahDibaca', 'createdAt'])
+        && isValidId(data.parentUid)
+        && isValidId(data.idSiswa)
+        && isNonEmptyStr(data.judul, 140)
+        && isNonEmptyStr(data.pesan, 500)
+        && data.kategori in ['Absensi 3x', 'Pendaftaran', 'Tagihan', 'Keringanan']
+        && data.sudahDibaca is bool
+        && data.createdAt is timestamp;
+    }
+
+    function isValidFollowup(data) {
+      return data.keys().hasAll(['parentUid', 'idSiswa', 'namaSiswa', 'namaParent', 'noTeleponParent', 'jumlahAbsenBeruntun', 'tanggalPemicu', 'statusTindakLanjut', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['parentUid', 'idSiswa', 'namaSiswa', 'namaParent', 'noTeleponParent', 'jumlahAbsenBeruntun', 'tanggalPemicu', 'statusTindakLanjut', 'hasilPanggilan', 'ditindakOleh', 'tanggalTindakLanjut', 'createdAt', 'updatedAt'])
+        && isValidId(data.parentUid)
+        && isValidId(data.idSiswa)
+        && isNonEmptyStr(data.namaSiswa, 120)
+        && isNonEmptyStr(data.namaParent, 120)
+        && isNonEmptyStr(data.noTeleponParent, 32)
+        && data.jumlahAbsenBeruntun is number && data.jumlahAbsenBeruntun >= 3
+        && isNonEmptyStr(data.tanggalPemicu, 20)
+        && data.statusTindakLanjut in ['Menunggu Telepon', 'Sedang Dihubungi', 'Selesai']
+        && isOptStr(data, 'hasilPanggilan', 500)
+        && isOptStr(data, 'ditindakOleh', 120)
+        && isOptStr(data, 'tanggalTindakLanjut', 20)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidReliefRequest(data) {
+      return data.keys().hasAll(['parentUid', 'idTagihan', 'idSiswa', 'namaSiswa', 'periode', 'jumlahTagihan', 'jenisPengajuan', 'alasan', 'statusKeputusan', 'tanggalPengajuan', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['parentUid', 'idTagihan', 'idSiswa', 'namaSiswa', 'periode', 'jumlahTagihan', 'jenisPengajuan', 'alasan', 'statusKeputusan', 'catatanPemilik', 'tanggalPengajuan', 'tanggalKeputusan', 'createdAt', 'updatedAt'])
+        && isValidId(data.parentUid)
+        && isValidId(data.idTagihan)
+        && isValidId(data.idSiswa)
+        && isNonEmptyStr(data.namaSiswa, 120)
+        && isNonEmptyStr(data.periode, 40)
+        && data.jumlahTagihan is number && data.jumlahTagihan >= 0
+        && data.jenisPengajuan in ['Keringanan Nominal', 'Penundaan Jatuh Tempo']
+        && data.alasan is string && data.alasan.size() >= 5 && data.alasan.size() <= 500
+        && data.statusKeputusan in ['Menunggu', 'Disetujui', 'Ditolak']
+        && isOptStr(data, 'catatanPemilik', 300)
+        && isNonEmptyStr(data.tanggalPengajuan, 20)
+        && isOptStr(data, 'tanggalKeputusan', 20)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidFeatureFlag(data) {
+      return data.keys().hasAll(['key', 'label', 'description', 'targetRole', 'enabled', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['key', 'label', 'description', 'targetRole', 'enabled', 'updatedBy', 'createdAt', 'updatedAt'])
+        && isValidId(data.key)
+        && data.key in ['betaAnalyticsForecast', 'betaBulkBillingActions', 'betaCompactAuditStream']
+        && isNonEmptyStr(data.label, 120)
+        && isNonEmptyStr(data.description, 300)
+        && data.targetRole == 'admin'
+        && data.enabled is bool
+        && isOptStr(data, 'updatedBy', 120)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // --- Collection Rules ---
+
+    // 1. Admins registry
+    match /admins/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isAdmin();
+      allow create, update, delete: if isValidId(userId) && isAdmin();
+    }
+
+    // 2. Users (PII isolated to owner + admin)
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isVerifiedUser() && isValidId(userId) && isOwner(userId)
+        && isValidUser(incoming())
+        && incoming().uid == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && (incoming().role == 'orang_tua' || isBootstrappedAdmin());
+      allow update: if isVerifiedUser() && isValidId(userId) && isValidUser(incoming())
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin() ||
+          (isOwner(userId) && incoming().role == existing().role && incoming().diff(existing()).affectedKeys().hasOnly(['nama', 'noTelepon', 'alamat', 'updatedAt']))
+        );
+      allow delete: if isValidId(userId) && isAdmin();
+    }
+
+    // 3. Programs (public catalog read, admin write)
+    match /programs/{programId} {
+      allow get: if isValidId(programId);
+      allow list: if true;
+      allow create: if isValidId(programId) && isAdmin() && isValidProgram(incoming())
+        && incoming().createdAt == request.time && incoming().updatedAt == request.time;
+      allow update: if isValidId(programId) && isAdmin() && isValidProgram(incoming())
+        && incoming().createdAt == existing().createdAt && incoming().updatedAt == request.time;
+      allow delete: if isValidId(programId) && isAdmin();
+    }
+
+    // 4. Tutors (PII protected: staff only)
+    match /tutors/{tutorId} {
+      allow get: if isValidId(tutorId) && isStaff();
+      allow list: if isStaff();
+      allow create: if isValidId(tutorId) && isAdmin() && isValidTutor(incoming())
+        && incoming().createdAt == request.time && incoming().updatedAt == request.time;
+      allow update: if isValidId(tutorId) && isAdmin() && isValidTutor(incoming())
+        && incoming().createdAt == existing().createdAt && incoming().updatedAt == request.time;
+      allow delete: if isValidId(tutorId) && isAdmin();
+    }
+
+    // 5. Classes (public catalog read, admin write)
+    match /classes/{classId} {
+      allow get: if isValidId(classId);
+      allow list: if true;
+      allow create: if isValidId(classId) && isAdmin() && isValidClass(incoming())
+        && incoming().createdAt == request.time && incoming().updatedAt == request.time;
+      allow update: if isValidId(classId) && isValidClass(incoming())
+        && incoming().createdAt == existing().createdAt && incoming().updatedAt == request.time
+        && (isAdmin() || (
+          isVerifiedUser()
+          && incoming().diff(existing()).affectedKeys().hasOnly(['jumlahTerisi', 'statusKelas', 'updatedAt'])
+          && incoming().jumlahTerisi == existing().jumlahTerisi + 1
+          && incoming().jumlahTerisi <= existing().kapasitasMaksimal
+        ));
+      allow delete: if isValidId(classId) && isAdmin();
+    }
+
+    // 6. Schedules (public catalog read, admin write)
+    match /schedules/{scheduleId} {
+      allow get: if isValidId(scheduleId);
+      allow list: if true;
+      allow create: if isValidId(scheduleId) && isAdmin() && isValidSchedule(incoming())
+        && incoming().createdAt == request.time && incoming().updatedAt == request.time;
+      allow update: if isValidId(scheduleId) && isAdmin() && isValidSchedule(incoming())
+        && incoming().createdAt == existing().createdAt && incoming().updatedAt == request.time;
+      allow delete: if isValidId(scheduleId) && isAdmin();
+    }
+
+    // 7. Students
+    match /students/{studentId} {
+      allow get: if isValidId(studentId) && isVerifiedUser() && (existing().parentUid == request.auth.uid || isStaff());
+      allow list: if isVerifiedUser() && (resource.data.parentUid == request.auth.uid || isStaff());
+      allow create: if isValidId(studentId) && isVerifiedUser() && isValidStudent(incoming())
+        && (incoming().parentUid == request.auth.uid || isAdmin())
+        && incoming().createdAt == request.time && incoming().updatedAt == request.time;
+      allow update: if isValidId(studentId) && isVerifiedUser() && isValidStudent(incoming())
+        && incoming().parentUid == existing().parentUid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (isAdmin() || (existing().parentUid == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['asalSekolah', 'updatedAt'])));
+      allow delete: if isValidId(studentId) && isAdmin();
+    }
+
+    // 8. Registrations
+    match /registrations/{registrationId} {
+      allow get: if isValidId(registrationId) && isVerifiedUser() && (existing().parentUid == request.auth.uid || isAdmin() || isPemilik());
+      allow list: if isVerifiedUser() && (resource.data.parentUid == request.auth.uid || isAdmin() || isPemilik());
+      allow create: if isValidId(registrationId) && isVerifiedUser() && isValidRegistration(incoming())
+        && (incoming().parentUid == request.auth.uid || isAdmin())
+        && incoming().createdAt == request.time && incoming().updatedAt == request.time;
+      allow update: if isValidId(registrationId) && isAdmin() && isValidRegistration(incoming())
+        && incoming().parentUid == existing().parentUid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time;
+      allow delete: if isValidId(registrationId) && isAdmin();
+    }
+
+    // 9. Waitlists
+    match /waitlists/{waitlistId} {
+      allow get: if isValidId(waitlistId) && isVerifiedUser() && (existing().parentUid == request.auth.uid || isAdmin() || isPemilik());
+      allow list: if isVerifiedUser() && (resource.data.parentUid == request.auth.uid || isAdmin() || isPemilik());
+      allow create: if isValidId(waitlistId) && isVerifiedUser() && isValidWaitlist(incoming())
+        && (incoming().parentUid == request.auth.uid || isAdmin())
+        && incoming().createdAt == request.time && incoming().updatedAt == request.time;
+      allow update: if isValidId(waitlistId) && isAdmin() && isValidWaitlist(incoming())
+        && incoming().parentUid == existing().parentUid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time;
+      allow delete: if isValidId(waitlistId) && isAdmin();
+    }
+
+    // 10. Student Attendance
+    match /student_attendance/{attendanceId} {
+      allow get: if isValidId(attendanceId) && isVerifiedUser() && (existing().parentUid == request.auth.uid || isStaff());
+      allow list: if isVerifiedUser() && (resource.data.parentUid == request.auth.uid || isStaff());
+      allow create: if isValidId(attendanceId) && isTutor() && isValidStudentAttendance(incoming())
+        && incoming().createdAt == request.time;
+      allow update: if isValidId(attendanceId) && isAdmin() && isValidStudentAttendance(incoming())
+        && incoming().createdAt == existing().createdAt;
+      allow delete: if isValidId(attendanceId) && isAdmin();
+    }
+
+    // 11. Tutor Attendance & Honorarium
+    match /tutor_attendance/{tutorAttendanceId} {
+      allow get: if isValidId(tutorAttendanceId) && isStaff();
+      allow list: if isStaff();
+      allow create: if isValidId(tutorAttendanceId) && isTutor() && isValidTutorAttendance(incoming())
+        && incoming().createdAt == request.time;
+      allow update: if isValidId(tutorAttendanceId) && isAdmin() && isValidTutorAttendance(incoming())
+        && incoming().createdAt == existing().createdAt;
+      allow delete: if isValidId(tutorAttendanceId) && isAdmin();
+    }
+
+    // 12. Invoices
+    match /invoices/{invoiceId} {
+      allow get: if isValidId(invoiceId) && isVerifiedUser() && (existing().parentUid == request.auth.uid || isAdmin() || isPemilik());
+      allow list: if isVerifiedUser() && (resource.data.parentUid == request.auth.uid || isAdmin() || isPemilik());
+      allow create: if isValidId(invoiceId) && isVerifiedUser() && isValidInvoice(incoming())
+        && (isAdmin() || (incoming().parentUid == request.auth.uid && incoming().statusTagihan == 'Belum Bayar'))
+        && incoming().createdAt == request.time && incoming().updatedAt == request.time;
+      allow update: if isValidId(invoiceId) && isAdmin() && isValidInvoice(incoming())
+        && (existing().statusTagihan != 'Lunas' || isAdmin())
+        && incoming().parentUid == existing().parentUid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time;
+      allow delete: if isValidId(invoiceId) && isAdmin();
+    }
+
+    // 13. Payments
+    match /payments/{paymentId} {
+      allow get: if isValidId(paymentId) && isVerifiedUser() && (existing().parentUid == request.auth.uid || isAdmin() || isPemilik());
+      allow list: if isVerifiedUser() && (resource.data.parentUid == request.auth.uid || isAdmin() || isPemilik());
+      allow create: if isValidId(paymentId) && isAdmin() && isValidPayment(incoming())
+        && incoming().createdAt == request.time;
+      allow update, delete: if isValidId(paymentId) && isAdmin();
+    }
+
+    // 14. Receipts
+    match /receipts/{receiptId} {
+      allow get: if isValidId(receiptId) && isVerifiedUser() && (existing().parentUid == request.auth.uid || isAdmin() || isPemilik());
+      allow list: if isVerifiedUser() && (resource.data.parentUid == request.auth.uid || isAdmin() || isPemilik());
+      allow create: if isValidId(receiptId) && isAdmin() && isValidReceipt(incoming())
+        && incoming().createdAt == request.time;
+      allow update, delete: if isValidId(receiptId) && isAdmin();
+    }
+
+    // 15. Notifications
+    match /notifications/{notificationId} {
+      allow get: if isValidId(notificationId) && isVerifiedUser() && (existing().parentUid == request.auth.uid || isStaff());
+      allow list: if isVerifiedUser() && (resource.data.parentUid == request.auth.uid || isStaff());
+      allow create: if isValidId(notificationId) && isStaff() && isValidNotification(incoming())
+        && incoming().createdAt == request.time;
+      allow update: if isValidId(notificationId) && isVerifiedUser() && isValidNotification(incoming())
+        && incoming().parentUid == existing().parentUid
+        && incoming().createdAt == existing().createdAt
+        && (isAdmin() || (existing().parentUid == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['sudahDibaca'])));
+      allow delete: if isValidId(notificationId) && isAdmin();
+    }
+
+    // 16. Absence Followups (3x consecutive absence)
+    match /followups/{followupId} {
+      allow get: if isValidId(followupId) && isVerifiedUser() && (existing().parentUid == request.auth.uid || isStaff());
+      allow list: if isVerifiedUser() && (resource.data.parentUid == request.auth.uid || isStaff());
+      allow create: if isValidId(followupId) && isStaff() && isValidFollowup(incoming())
+        && incoming().createdAt == request.time && incoming().updatedAt == request.time;
+      allow update: if isValidId(followupId) && isAdmin() && isValidFollowup(incoming())
+        && incoming().parentUid == existing().parentUid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time;
+      allow delete: if isValidId(followupId) && isAdmin();
+    }
+
+    // 17. Relief Requests (Owner approval required)
+    match /relief_requests/{reliefId} {
+      allow get: if isValidId(reliefId) && isVerifiedUser() && (existing().parentUid == request.auth.uid || isAdmin() || isPemilik());
+      allow list: if isVerifiedUser() && (resource.data.parentUid == request.auth.uid || isAdmin() || isPemilik());
+      allow create: if isValidId(reliefId) && isVerifiedUser() && isValidReliefRequest(incoming())
+        && (incoming().parentUid == request.auth.uid || isAdmin())
+        && incoming().statusKeputusan == 'Menunggu'
+        && incoming().createdAt == request.time && incoming().updatedAt == request.time;
+      allow update: if isValidId(reliefId) && isVerifiedUser() && isValidReliefRequest(incoming())
+        && incoming().parentUid == existing().parentUid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin() ||
+          (isPemilik() && existing().statusKeputusan == 'Menunggu' && incoming().diff(existing()).affectedKeys().hasOnly(['statusKeputusan', 'catatanPemilik', 'tanggalKeputusan', 'updatedAt']))
+        );
+      allow delete: if isValidId(reliefId) && isAdmin();
+    }
+
+    // 18. Feature Flags (Admin beta dashboard toggles)
+    match /feature_flags/{flagId} {
+      allow get: if isValidId(flagId) && isAdmin();
+      allow list: if isAdmin();
+      allow create: if isValidId(flagId) && isAdmin() && isValidFeatureFlag(incoming())
+        && incoming().key == flagId
+        && incoming().createdAt == request.time && incoming().updatedAt == request.time;
+      allow update: if isValidId(flagId) && isAdmin() && isValidFeatureFlag(incoming())
+        && incoming().key == existing().key
+        && incoming().targetRole == existing().targetRole
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time;
+      allow delete: if isValidId(flagId) && isAdmin();
+    }
+
+    // 19. Startup connectivity probe doc (read-only)
+    match /test/connection {
+      allow get: if true;
+    }
+  }
+}

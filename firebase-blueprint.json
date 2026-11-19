@@ -1,0 +1,407 @@
+{
+  "entities": {
+    "UserAccount": {
+      "title": "UserAccount",
+      "description": "Akun dan hak akses pengguna untuk empat peran sistem.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "nama": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "email": { "type": "string", "format": "email", "maxLength": 160 },
+        "role": { "type": "string", "enum": ["orang_tua", "tutor", "admin", "pemilik"] },
+        "noTelepon": { "type": "string", "maxLength": 32 },
+        "alamat": { "type": "string", "maxLength": 300 },
+        "linkedTutorId": { "type": "string", "maxLength": 128 },
+        "statusAktif": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "nama", "email", "role", "statusAktif", "createdAt", "updatedAt"]
+    },
+    "Program": {
+      "title": "Program",
+      "description": "Program bimbingan belajar (SD, SMP, SMA/UTBK).",
+      "type": "object",
+      "properties": {
+        "namaProgram": { "type": "string", "minLength": 2, "maxLength": 100 },
+        "jenjang": { "type": "string", "enum": ["SD", "SMP", "SMA", "UTBK"] },
+        "biayaSpp": { "type": "number" },
+        "biayaPendaftaran": { "type": "number" },
+        "frekuensiMingguan": { "type": "number" },
+        "durasiMenit": { "type": "number" },
+        "deskripsi": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["namaProgram", "jenjang", "biayaSpp", "biayaPendaftaran", "frekuensiMingguan", "durasiMenit", "deskripsi", "createdAt", "updatedAt"]
+    },
+    "Tutor": {
+      "title": "Tutor",
+      "description": "Data pengajar Bimbel Cerdas.",
+      "type": "object",
+      "properties": {
+        "namaTutor": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "email": { "type": "string", "format": "email", "maxLength": 160 },
+        "noTelepon": { "type": "string", "maxLength": 32 },
+        "alamat": { "type": "string", "maxLength": 300 },
+        "bidangKeahlian": { "type": "string", "maxLength": 160 },
+        "uid": { "type": "string", "maxLength": 128 },
+        "statusAktif": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["namaTutor", "email", "noTelepon", "bidangKeahlian", "statusAktif", "createdAt", "updatedAt"]
+    },
+    "ClassRoom": {
+      "title": "ClassRoom",
+      "description": "Data kelas dengan kapasitas maks 8 dan min 3 siswa.",
+      "type": "object",
+      "properties": {
+        "idProgram": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "namaProgram": { "type": "string", "maxLength": 100 },
+        "jenjang": { "type": "string", "enum": ["SD", "SMP", "SMA", "UTBK"] },
+        "namaKelas": { "type": "string", "minLength": 2, "maxLength": 100 },
+        "kapasitasMaksimal": { "type": "number" },
+        "jumlahMinimal": { "type": "number" },
+        "jumlahTerisi": { "type": "number" },
+        "statusKelas": { "type": "string", "enum": ["Menunggu Minimal", "Aktif", "Penuh", "Tidak Aktif"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["idProgram", "namaProgram", "jenjang", "namaKelas", "kapasitasMaksimal", "jumlahMinimal", "jumlahTerisi", "statusKelas", "createdAt", "updatedAt"]
+    },
+    "Schedule": {
+      "title": "Schedule",
+      "description": "Jadwal kelas 2 kali seminggu dengan durasi 90 menit per sesi.",
+      "type": "object",
+      "properties": {
+        "idKelas": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "namaKelas": { "type": "string", "maxLength": 100 },
+        "idTutor": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "namaTutor": { "type": "string", "maxLength": 120 },
+        "hari": { "type": "string", "enum": ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"] },
+        "jamMulai": { "type": "string", "maxLength": 10 },
+        "jamSelesai": { "type": "string", "maxLength": 10 },
+        "durasiMenit": { "type": "number" },
+        "ruangan": { "type": "string", "maxLength": 60 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["idKelas", "namaKelas", "idTutor", "namaTutor", "hari", "jamMulai", "jamSelesai", "durasiMenit", "createdAt", "updatedAt"]
+    },
+    "Student": {
+      "title": "Student",
+      "description": "Data siswa terhubung dengan orang tua.",
+      "type": "object",
+      "properties": {
+        "parentUid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "parentName": { "type": "string", "maxLength": 120 },
+        "parentPhone": { "type": "string", "maxLength": 32 },
+        "namaSiswa": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "tanggalLahir": { "type": "string", "maxLength": 20 },
+        "jenisKelamin": { "type": "string", "enum": ["L", "P"] },
+        "asalSekolah": { "type": "string", "maxLength": 120 },
+        "jenjang": { "type": "string", "enum": ["SD", "SMP", "SMA", "UTBK"] },
+        "idProgram": { "type": "string", "maxLength": 128 },
+        "namaProgram": { "type": "string", "maxLength": 100 },
+        "idKelas": { "type": "string", "maxLength": 128 },
+        "namaKelas": { "type": "string", "maxLength": 100 },
+        "urutanAnak": { "type": "number" },
+        "statusSiswa": { "type": "string", "enum": ["Aktif", "Menunggu Kelas", "Daftar Tunggu", "Nonaktif"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["parentUid", "parentName", "namaSiswa", "tanggalLahir", "jenisKelamin", "asalSekolah", "jenjang", "idProgram", "namaProgram", "idKelas", "namaKelas", "urutanAnak", "statusSiswa", "createdAt", "updatedAt"]
+    },
+    "Registration": {
+      "title": "Registration",
+      "description": "Data pendaftaran siswa baru beserta biaya pendaftaran Rp100.000.",
+      "type": "object",
+      "properties": {
+        "parentUid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "parentName": { "type": "string", "maxLength": 120 },
+        "idSiswa": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "namaSiswa": { "type": "string", "maxLength": 120 },
+        "idProgram": { "type": "string", "maxLength": 128 },
+        "namaProgram": { "type": "string", "maxLength": 100 },
+        "idKelas": { "type": "string", "maxLength": 128 },
+        "namaKelas": { "type": "string", "maxLength": 100 },
+        "biayaPendaftaran": { "type": "number" },
+        "statusBayarDaftar": { "type": "string", "enum": ["Belum Bayar", "Lunas"] },
+        "statusPendaftaran": { "type": "string", "enum": ["Menunggu Verifikasi", "Aktif", "Menunggu Kelas", "Daftar Tunggu", "Ditolak"] },
+        "tanggalDaftar": { "type": "string", "maxLength": 20 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["parentUid", "parentName", "idSiswa", "namaSiswa", "idProgram", "namaProgram", "idKelas", "namaKelas", "biayaPendaftaran", "statusBayarDaftar", "statusPendaftaran", "tanggalDaftar", "createdAt", "updatedAt"]
+    },
+    "Waitlist": {
+      "title": "Waitlist",
+      "description": "Daftar tunggu untuk kelas berkapasitas penuh (8 siswa).",
+      "type": "object",
+      "properties": {
+        "parentUid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "idSiswa": { "type": "string", "maxLength": 128 },
+        "namaSiswa": { "type": "string", "maxLength": 120 },
+        "idProgram": { "type": "string", "maxLength": 128 },
+        "idKelas": { "type": "string", "maxLength": 128 },
+        "namaKelas": { "type": "string", "maxLength": 100 },
+        "urutanAntrean": { "type": "number" },
+        "statusAntrean": { "type": "string", "enum": ["Menunggu", "Ditempatkan", "Dibatalkan"] },
+        "tanggalMasuk": { "type": "string", "maxLength": 20 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["parentUid", "idSiswa", "namaSiswa", "idProgram", "idKelas", "namaKelas", "urutanAntrean", "statusAntrean", "tanggalMasuk", "createdAt", "updatedAt"]
+    },
+    "StudentAttendance": {
+      "title": "StudentAttendance",
+      "description": "Catatan kehadiran siswa per sesi.",
+      "type": "object",
+      "properties": {
+        "parentUid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "idJadwal": { "type": "string", "maxLength": 128 },
+        "idKelas": { "type": "string", "maxLength": 128 },
+        "namaKelas": { "type": "string", "maxLength": 100 },
+        "idTutor": { "type": "string", "maxLength": 128 },
+        "tanggal": { "type": "string", "maxLength": 20 },
+        "idSiswa": { "type": "string", "maxLength": 128 },
+        "namaSiswa": { "type": "string", "maxLength": 120 },
+        "statusKehadiran": { "type": "string", "enum": ["Hadir", "Tidak Hadir"] },
+        "catatan": { "type": "string", "maxLength": 250 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["parentUid", "idJadwal", "idKelas", "namaKelas", "idTutor", "tanggal", "idSiswa", "namaSiswa", "statusKehadiran", "createdAt"]
+    },
+    "TutorAttendance": {
+      "title": "TutorAttendance",
+      "description": "Konfirmasi mengajar tutor & perhitungan honor Rp75.000/sesi (termasuk pengganti).",
+      "type": "object",
+      "properties": {
+        "idJadwal": { "type": "string", "maxLength": 128 },
+        "idKelas": { "type": "string", "maxLength": 128 },
+        "namaKelas": { "type": "string", "maxLength": 100 },
+        "tanggal": { "type": "string", "maxLength": 20 },
+        "idTutorAsli": { "type": "string", "maxLength": 128 },
+        "idTutorMengajar": { "type": "string", "maxLength": 128 },
+        "namaTutorMengajar": { "type": "string", "maxLength": 120 },
+        "isPengganti": { "type": "boolean" },
+        "statusHadir": { "type": "boolean" },
+        "durasiMenit": { "type": "number" },
+        "honorSesi": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["idJadwal", "idKelas", "namaKelas", "tanggal", "idTutorAsli", "idTutorMengajar", "namaTutorMengajar", "isPengganti", "statusHadir", "durasiMenit", "honorSesi", "createdAt"]
+    },
+    "Invoice": {
+      "title": "Invoice",
+      "description": "Tagihan SPP bulanan dengan diskon 10% anak ke-2+ dan status Belum Bayar/Lunas/Tunggakan.",
+      "type": "object",
+      "properties": {
+        "parentUid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "idSiswa": { "type": "string", "maxLength": 128 },
+        "namaSiswa": { "type": "string", "maxLength": 120 },
+        "idProgram": { "type": "string", "maxLength": 128 },
+        "namaProgram": { "type": "string", "maxLength": 100 },
+        "bulan": { "type": "number" },
+        "tahun": { "type": "number" },
+        "periodeLabel": { "type": "string", "maxLength": 40 },
+        "nominalDasar": { "type": "number" },
+        "diskonPersen": { "type": "number" },
+        "nominalDiskon": { "type": "number" },
+        "jumlahTagihan": { "type": "number" },
+        "jatuhTempo": { "type": "string", "maxLength": 20 },
+        "statusTagihan": { "type": "string", "enum": ["Belum Bayar", "Lunas", "Tunggakan"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["parentUid", "idSiswa", "namaSiswa", "idProgram", "namaProgram", "bulan", "tahun", "periodeLabel", "nominalDasar", "diskonPersen", "nominalDiskon", "jumlahTagihan", "jatuhTempo", "statusTagihan", "createdAt", "updatedAt"]
+    },
+    "Payment": {
+      "title": "Payment",
+      "description": "Catatan pembayaran SPP dan pendaftaran.",
+      "type": "object",
+      "properties": {
+        "parentUid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "idTagihan": { "type": "string", "maxLength": 128 },
+        "idSiswa": { "type": "string", "maxLength": 128 },
+        "namaSiswa": { "type": "string", "maxLength": 120 },
+        "jenisPembayaran": { "type": "string", "enum": ["SPP", "Pendaftaran"] },
+        "jumlahBayar": { "type": "number" },
+        "metodeBayar": { "type": "string", "enum": ["Transfer Bank", "QRIS", "Tunai"] },
+        "tanggalBayar": { "type": "string", "maxLength": 20 },
+        "dicatatOleh": { "type": "string", "maxLength": 120 },
+        "nomorKuitansi": { "type": "string", "maxLength": 60 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["parentUid", "idTagihan", "idSiswa", "namaSiswa", "jenisPembayaran", "jumlahBayar", "metodeBayar", "tanggalBayar", "dicatatOleh", "nomorKuitansi", "createdAt"]
+    },
+    "Receipt": {
+      "title": "Receipt",
+      "description": "Kuitansi digital pembayaran yang dapat dicetak ulang.",
+      "type": "object",
+      "properties": {
+        "nomorKuitansi": { "type": "string", "maxLength": 60 },
+        "parentUid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "idPembayaran": { "type": "string", "maxLength": 128 },
+        "idTagihan": { "type": "string", "maxLength": 128 },
+        "namaSiswa": { "type": "string", "maxLength": 120 },
+        "namaOrangTua": { "type": "string", "maxLength": 120 },
+        "jenisPembayaran": { "type": "string", "enum": ["SPP", "Pendaftaran"] },
+        "periode": { "type": "string", "maxLength": 50 },
+        "nominalDasar": { "type": "number" },
+        "diskonPersen": { "type": "number" },
+        "jumlahBayar": { "type": "number" },
+        "metodeBayar": { "type": "string", "maxLength": 40 },
+        "tanggalBayar": { "type": "string", "maxLength": 20 },
+        "adminPencatat": { "type": "string", "maxLength": 120 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["nomorKuitansi", "parentUid", "idPembayaran", "idTagihan", "namaSiswa", "namaOrangTua", "jenisPembayaran", "periode", "nominalDasar", "diskonPersen", "jumlahBayar", "metodeBayar", "tanggalBayar", "adminPencatat", "createdAt"]
+    },
+    "NotificationItem": {
+      "title": "NotificationItem",
+      "description": "Notifikasi untuk orang tua (termasuk absen 3x berturut-turut).",
+      "type": "object",
+      "properties": {
+        "parentUid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "idSiswa": { "type": "string", "maxLength": 128 },
+        "judul": { "type": "string", "maxLength": 140 },
+        "pesan": { "type": "string", "maxLength": 500 },
+        "kategori": { "type": "string", "enum": ["Absensi 3x", "Pendaftaran", "Tagihan", "Keringanan"] },
+        "sudahDibaca": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["parentUid", "idSiswa", "judul", "pesan", "kategori", "sudahDibaca", "createdAt"]
+    },
+    "AbsenceFollowup": {
+      "title": "AbsenceFollowup",
+      "description": "Tiket tindak lanjut admin menelepon orang tua saat siswa absen 3x berturut-turut.",
+      "type": "object",
+      "properties": {
+        "parentUid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "idSiswa": { "type": "string", "maxLength": 128 },
+        "namaSiswa": { "type": "string", "maxLength": 120 },
+        "namaParent": { "type": "string", "maxLength": 120 },
+        "noTeleponParent": { "type": "string", "maxLength": 32 },
+        "jumlahAbsenBeruntun": { "type": "number" },
+        "tanggalPemicu": { "type": "string", "maxLength": 20 },
+        "statusTindakLanjut": { "type": "string", "enum": ["Menunggu Telepon", "Sedang Dihubungi", "Selesai"] },
+        "hasilPanggilan": { "type": "string", "maxLength": 500 },
+        "ditindakOleh": { "type": "string", "maxLength": 120 },
+        "tanggalTindakLanjut": { "type": "string", "maxLength": 20 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["parentUid", "idSiswa", "namaSiswa", "namaParent", "noTeleponParent", "jumlahAbsenBeruntun", "tanggalPemicu", "statusTindakLanjut", "createdAt", "updatedAt"]
+    },
+    "ReliefRequest": {
+      "title": "ReliefRequest",
+      "description": "Permintaan keringanan atau penundaan pembayaran yang memerlukan persetujuan pemilik.",
+      "type": "object",
+      "properties": {
+        "parentUid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "idTagihan": { "type": "string", "maxLength": 128 },
+        "idSiswa": { "type": "string", "maxLength": 128 },
+        "namaSiswa": { "type": "string", "maxLength": 120 },
+        "periode": { "type": "string", "maxLength": 40 },
+        "jumlahTagihan": { "type": "number" },
+        "jenisPengajuan": { "type": "string", "enum": ["Keringanan Nominal", "Penundaan Jatuh Tempo"] },
+        "alasan": { "type": "string", "minLength": 5, "maxLength": 500 },
+        "statusKeputusan": { "type": "string", "enum": ["Menunggu", "Disetujui", "Ditolak"] },
+        "catatanPemilik": { "type": "string", "maxLength": 300 },
+        "tanggalPengajuan": { "type": "string", "maxLength": 20 },
+        "tanggalKeputusan": { "type": "string", "maxLength": 20 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["parentUid", "idTagihan", "idSiswa", "namaSiswa", "periode", "jumlahTagihan", "jenisPengajuan", "alasan", "statusKeputusan", "tanggalPengajuan", "createdAt", "updatedAt"]
+    },
+    "FeatureFlag": {
+      "title": "FeatureFlag",
+      "description": "Pengaturan feature flag untuk mengaktifkan/menonaktifkan fitur dashboard beta bagi peran Admin.",
+      "type": "object",
+      "properties": {
+        "key": { "type": "string", "enum": ["betaAnalyticsForecast", "betaBulkBillingActions", "betaCompactAuditStream"], "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "label": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "description": { "type": "string", "minLength": 2, "maxLength": 300 },
+        "targetRole": { "type": "string", "enum": ["admin"] },
+        "enabled": { "type": "boolean" },
+        "updatedBy": { "type": "string", "maxLength": 120 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["key", "label", "description", "targetRole", "enabled", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserAccount" },
+      "description": "Profil akun dan peran pengguna (orang_tua, tutor, admin, pemilik)."
+    },
+    "/programs/{programId}": {
+      "schema": { "$ref": "#/entities/Program" },
+      "description": "Katalog program bimbel publik."
+    },
+    "/tutors/{tutorId}": {
+      "schema": { "$ref": "#/entities/Tutor" },
+      "description": "Data tutor dan keahlian."
+    },
+    "/classes/{classId}": {
+      "schema": { "$ref": "#/entities/ClassRoom" },
+      "description": "Data kelas belajar dan kapasitas."
+    },
+    "/schedules/{scheduleId}": {
+      "schema": { "$ref": "#/entities/Schedule" },
+      "description": "Jadwal mengajar dan belajar."
+    },
+    "/students/{studentId}": {
+      "schema": { "$ref": "#/entities/Student" },
+      "description": "Data siswa terhubung ke orang tua."
+    },
+    "/registrations/{registrationId}": {
+      "schema": { "$ref": "#/entities/Registration" },
+      "description": "Pendaftaran siswa baru."
+    },
+    "/waitlists/{waitlistId}": {
+      "schema": { "$ref": "#/entities/Waitlist" },
+      "description": "Antrean daftar tunggu kelas penuh."
+    },
+    "/student_attendance/{attendanceId}": {
+      "schema": { "$ref": "#/entities/StudentAttendance" },
+      "description": "Absensi siswa per pertemuan."
+    },
+    "/tutor_attendance/{tutorAttendanceId}": {
+      "schema": { "$ref": "#/entities/TutorAttendance" },
+      "description": "Konfirmasi kehadiran tutor dan honor Rp75.000."
+    },
+    "/invoices/{invoiceId}": {
+      "schema": { "$ref": "#/entities/Invoice" },
+      "description": "Tagihan SPP bulanan."
+    },
+    "/payments/{paymentId}": {
+      "schema": { "$ref": "#/entities/Payment" },
+      "description": "Pencatatan pembayaran."
+    },
+    "/receipts/{receiptId}": {
+      "schema": { "$ref": "#/entities/Receipt" },
+      "description": "Kuitansi digital."
+    },
+    "/notifications/{notificationId}": {
+      "schema": { "$ref": "#/entities/NotificationItem" },
+      "description": "Notifikasi untuk orang tua."
+    },
+    "/followups/{followupId}": {
+      "schema": { "$ref": "#/entities/AbsenceFollowup" },
+      "description": "Tindak lanjut ketidakhadiran siswa 3x berturut-turut."
+    },
+    "/relief_requests/{reliefId}": {
+      "schema": { "$ref": "#/entities/ReliefRequest" },
+      "description": "Permintaan keringanan/penundaan pembayaran."
+    },
+    "/feature_flags/{flagId}": {
+      "schema": { "$ref": "#/entities/FeatureFlag" },
+      "description": "Konfigurasi feature flag fitur beta dashboard Admin."
+    }
+  }
+}
