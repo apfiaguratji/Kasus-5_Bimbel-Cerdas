@@ -1,5 +1,8 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import type { AddressInfo } from 'node:net';
+import express from 'express';
+import { createApiRouter } from '../server/apiRouter.ts';
 import {
   calculateSppInvoice,
   calculateTutorHonorRecap,
@@ -291,3 +294,65 @@ describe('Pengujian Integritas Data Seed, RBAC & Feature Flags', () => {
     assert.equal(check('orangluar@gmail.com'), false);
   });
 });
+
+describe('Pengujian REST API Endpoints Bimbel Cerdas', () => {
+  it('melayani endpoint health, docs, simulasi-biaya, honor-rekap, dan proteksi koleksi', async () => {
+    const app = express();
+    app.use('/api', createApiRouter());
+
+    const server = await new Promise<ReturnType<typeof app.listen>>((resolve) => {
+      const s = app.listen(0, '127.0.0.1', () => resolve(s));
+    });
+
+    try {
+      const { port } = server.address() as AddressInfo;
+      const base = `http://127.0.0.1:${port}/api`;
+
+      const healthRes = await fetch(`${base}/health`);
+      assert.equal(healthRes.status, 200);
+      const healthJson = (await healthRes.json()) as { status: string; databaseId: string };
+      assert.equal(healthJson.status, 'ok');
+      assert.equal(healthJson.databaseId, 'ai-studio-c15e7da5-4f88-4940-89f4-ab28fa592704');
+
+      const docsRes = await fetch(`${base}/docs`);
+      assert.equal(docsRes.status, 200);
+      const docsJson = (await docsRes.json()) as { endpoints: unknown[] };
+      assert.ok(docsJson.endpoints.length >= 8);
+
+      const simRes = await fetch(`${base}/simulasi-biaya`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ children: [{ jenjang: 'SMP' }, { jenjang: 'SD' }] }),
+      });
+      assert.equal(simRes.status, 200);
+      const simJson = (await simRes.json()) as {
+        totalPendaftaran: number;
+        totalDiskonBulanan: number;
+        totalSppBulanan: number;
+      };
+      assert.equal(simJson.totalPendaftaran, 200_000);
+      assert.equal(simJson.totalDiskonBulanan, 30_000);
+      assert.equal(simJson.totalSppBulanan, 670_000);
+
+      const honorRes = await fetch(`${base}/honor-rekap`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ attendances: SEED_TUTOR_ATTENDANCE }),
+      });
+      assert.equal(honorRes.status, 200);
+      const honorJson = (await honorRes.json()) as { totalHonorKeseluruhan: number };
+      assert.equal(honorJson.totalHonorKeseluruhan, 300_000);
+
+      const unauthColRes = await fetch(`${base}/collections/invoices`);
+      assert.equal(unauthColRes.status, 401);
+
+      const notFoundRes = await fetch(`${base}/tidak-ada`);
+      assert.equal(notFoundRes.status, 404);
+    } finally {
+      await new Promise<void>((resolve, reject) => {
+        server.close((err) => (err ? reject(err) : resolve()));
+      });
+    }
+  });
+});
+
