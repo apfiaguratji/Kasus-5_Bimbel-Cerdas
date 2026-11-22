@@ -17,6 +17,9 @@ async function startServer() {
   // Mount REST API endpoints
   app.use('/api', createApiRouter());
 
+  // Serve downloadable documentation files cleanly before SPA fallback
+  app.use('/docs', express.static(path.resolve(rootDir, 'public/docs')));
+
   let mountedVite = false;
   if (!isProdStart || !fs.existsSync(distIndex)) {
     try {

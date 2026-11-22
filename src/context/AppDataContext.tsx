@@ -786,7 +786,19 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       await signInWithPopup(auth, googleProvider);
       addToast('success', 'Berhasil masuk dengan Google', 'Selamat datang di Bimbel Cerdas.');
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Gagal masuk dengan Google.';
+      const code =
+        err && typeof err === 'object' && 'code' in err
+          ? String((err as { code?: unknown }).code)
+          : '';
+      const host = typeof window !== 'undefined' ? window.location.hostname : '';
+      let msg = err instanceof Error ? err.message : 'Gagal masuk dengan Google.';
+      if (code === 'auth/unauthorized-domain') {
+        msg = `Domain "${host}" belum terdaftar di Firebase Authorized Domains. Tambahkan "${host}" di Firebase Console → Authentication → Settings → Authorized domains, atau gunakan Akun Uji Sandbox di bawah.`;
+      } else if (code === 'auth/popup-blocked') {
+        msg = 'Popup login Google diblokir browser. Izinkan pop-up untuk situs ini lalu coba lagi.';
+      } else if (code === 'auth/popup-closed-by-user') {
+        msg = 'Jendela login Google ditutup sebelum proses selesai.';
+      }
       addToast('error', 'Autentikasi gagal', msg);
     } finally {
       setIsLoggingIn(false);
