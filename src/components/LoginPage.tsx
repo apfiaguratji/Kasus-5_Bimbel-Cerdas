@@ -269,9 +269,14 @@ export function LoginPage() {
                     autoComplete="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="nama@email.com"
+                    placeholder="nama@gmail.com"
                     className="w-full rounded-xl border border-[#cbd9f2] bg-white px-3.5 py-2.5 text-sm text-[#0b1e4b] placeholder:text-[#8fa3c7] focus:outline-none focus:border-[#2563eb]"
                   />
+                  {mode === 'register' && (
+                    <p className="text-[11px] text-[#566b94] mt-1">
+                      Gunakan alamat email aktif dengan domain valid untuk menerima tautan verifikasi.
+                    </p>
+                  )}
                 </div>
 
                 {mode !== 'reset' && (

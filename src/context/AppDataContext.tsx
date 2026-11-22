@@ -902,6 +902,36 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     [addToast]
   );
 
+  const verifyEmailDomainBeforeAuth = useCallback(
+    async (emailToCheck: string): Promise<{ ok: true } | { ok: false; error: string }> => {
+      try {
+        const res = await fetch('/api/validate-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: emailToCheck }),
+        });
+        const contentType = res.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) {
+          return { ok: true };
+        }
+        const payload = (await res.json()) as { valid?: boolean; error?: string };
+        if (res.status === 422 || payload.valid === false) {
+          return {
+            ok: false,
+            error:
+              payload.error ||
+              'Domain email tidak ditemukan atau tidak dapat menerima email verifikasi.',
+          };
+        }
+        return { ok: true };
+      } catch {
+        // Fallback ke validasi klien jika endpoint MX sedang tidak terjangkau
+        return { ok: true };
+      }
+    },
+    []
+  );
+
   const registerWithEmailPassword = useCallback(
     async (nama: string, email: string, password: string): Promise<{ ok: boolean; error?: string }> => {
       const validation = validateEmailPasswordInput({ mode: 'register', nama, email, password });
@@ -910,6 +940,10 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       }
       setIsLoggingIn(true);
       try {
+        const domainCheck = await verifyEmailDomainBeforeAuth(validation.email);
+        if (!domainCheck.ok) {
+          return { ok: false, error: domainCheck.error };
+        }
         const cred = await createUserWithEmailAndPassword(auth, validation.email, password);
         if (validation.nama) {
           await updateProfile(cred.user, { displayName: validation.nama });
@@ -930,7 +964,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         setIsLoggingIn(false);
       }
     },
-    [addToast]
+    [addToast, verifyEmailDomainBeforeAuth]
   );
 
   const sendPasswordReset = useCallback(
@@ -941,6 +975,10 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       }
       setIsLoggingIn(true);
       try {
+        const domainCheck = await verifyEmailDomainBeforeAuth(validation.email);
+        if (!domainCheck.ok) {
+          return { ok: false, error: domainCheck.error };
+        }
         await sendPasswordResetEmail(auth, validation.email);
         addToast(
           'success',
@@ -955,7 +993,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         setIsLoggingIn(false);
       }
     },
-    [addToast]
+    [addToast, verifyEmailDomainBeforeAuth]
   );
 
   const resendVerificationEmail = useCallback(async () => {

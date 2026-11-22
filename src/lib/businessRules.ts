@@ -172,13 +172,132 @@ export function canRolePerformAction(
   return ROLE_PERMISSIONS[role]?.includes(action) ?? false;
 }
 
+export const COMMON_EMAIL_DOMAIN_TYPOS: Record<string, string> = {
+  'gmial.com': 'gmail.com',
+  'gmal.com': 'gmail.com',
+  'gamil.com': 'gmail.com',
+  'gnail.com': 'gmail.com',
+  'gmaill.com': 'gmail.com',
+  'gmail.co': 'gmail.com',
+  'gmail.cm': 'gmail.com',
+  'gmail.con': 'gmail.com',
+  'gmail.om': 'gmail.com',
+  'yaho.com': 'yahoo.com',
+  'yhoo.com': 'yahoo.com',
+  'yahooo.com': 'yahoo.com',
+  'yahoo.cm': 'yahoo.com',
+  'yahoo.con': 'yahoo.com',
+  'hotmal.com': 'hotmail.com',
+  'hotmial.com': 'hotmail.com',
+  'outlok.com': 'outlook.com',
+  'outllok.com': 'outlook.com',
+  'iclod.com': 'icloud.com',
+  'icoud.com': 'icloud.com',
+};
+
+export const DISPOSABLE_OR_FAKE_DOMAINS = new Set<string>([
+  'example.com',
+  'example.org',
+  'example.net',
+  'test.com',
+  'test.id',
+  'testing.com',
+  'dummy.com',
+  'fake.com',
+  'localhost',
+  'invalid',
+  'mailinator.com',
+  'yopmail.com',
+  'tempmail.com',
+  'temp-mail.org',
+  '10minutemail.com',
+  'guerrillamail.com',
+  'sharklasers.com',
+  'trashmail.com',
+  'fakeinbox.com',
+  'getnada.com',
+  'dispostable.com',
+  'maildrop.cc',
+]);
+
+export function validateEmailAddressFormat(
+  rawEmail: string,
+  options: { strictDomainPolicy?: boolean } = {}
+): { ok: true; email: string; domain: string } | { ok: false; error: string } {
+  const trimmedEmail = rawEmail.trim();
+  if (!trimmedEmail || trimmedEmail.length > 254) {
+    return { ok: false, error: 'Masukkan alamat email yang valid.' };
+  }
+
+  const atParts = trimmedEmail.split('@');
+  if (atParts.length !== 2) {
+    return {
+      ok: false,
+      error: 'Format email tidak valid. Gunakan format standar seperti nama@gmail.com.',
+    };
+  }
+
+  const [localPart, rawDomain] = atParts;
+  const domain = rawDomain.toLowerCase();
+
+  if (
+    !localPart ||
+    localPart.length > 64 ||
+    localPart.startsWith('.') ||
+    localPart.endsWith('.') ||
+    localPart.includes('..') ||
+    !/^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+$/.test(localPart)
+  ) {
+    return {
+      ok: false,
+      error: 'Penulisan nama pengguna email sebelum tanda "@" tidak valid.',
+    };
+  }
+
+  const labels = domain.split('.');
+  if (
+    labels.length < 2 ||
+    labels.some((lbl) => !lbl || lbl.length > 63 || lbl.startsWith('-') || lbl.endsWith('-') || !/^[a-z0-9-]+$/.test(lbl))
+  ) {
+    return {
+      ok: false,
+      error: `Format domain email "${domain}" tidak valid.`,
+    };
+  }
+
+  const tld = labels[labels.length - 1];
+  if (!/^[a-z]{2,}$/.test(tld)) {
+    return {
+      ok: false,
+      error: `Akhiran domain ".${tld}" tidak valid. Gunakan domain email resmi seperti .com, .id, atau .ac.id.`,
+    };
+  }
+
+  if (options.strictDomainPolicy) {
+    const suggestedDomain = COMMON_EMAIL_DOMAIN_TYPOS[domain];
+    if (suggestedDomain) {
+      return {
+        ok: false,
+        error: `Penulisan domain "${domain}" keliru. Apakah maksud Anda "${localPart}@${suggestedDomain}"?`,
+      };
+    }
+    if (DISPOSABLE_OR_FAKE_DOMAINS.has(domain)) {
+      return {
+        ok: false,
+        error: `Domain "${domain}" tidak dapat digunakan karena termasuk domain contoh atau email sementara.`,
+      };
+    }
+  }
+
+  return { ok: true, email: `${localPart}@${domain}`, domain };
+}
+
 export function validateEmailPasswordInput(input: {
   mode: 'login' | 'register' | 'reset';
   nama?: string;
   email: string;
   password?: string;
-}): { ok: true; email: string; nama?: string } | { ok: false; error: string } {
-  const trimmedEmail = input.email.trim();
+}): { ok: true; email: string; domain: string; nama?: string } | { ok: false; error: string } {
   const trimmedNama = input.nama?.trim() || '';
   const password = input.password || '';
 
@@ -186,8 +305,11 @@ export function validateEmailPasswordInput(input: {
     return { ok: false, error: 'Nama lengkap wajib diisi minimal 2 karakter.' };
   }
 
-  if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
-    return { ok: false, error: 'Masukkan alamat email yang valid.' };
+  const emailCheck = validateEmailAddressFormat(input.email, {
+    strictDomainPolicy: input.mode !== 'login',
+  });
+  if (!emailCheck.ok) {
+    return { ok: false, error: emailCheck.error };
   }
 
   if (input.mode !== 'reset') {
@@ -199,7 +321,12 @@ export function validateEmailPasswordInput(input: {
     }
   }
 
-  return { ok: true, email: trimmedEmail, ...(input.mode === 'register' ? { nama: trimmedNama } : {}) };
+  return {
+    ok: true,
+    email: emailCheck.email,
+    domain: emailCheck.domain,
+    ...(input.mode === 'register' ? { nama: trimmedNama } : {}),
+  };
 }
 
 export function mapFirebaseAuthError(err: unknown, host = ''): string {

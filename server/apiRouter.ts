@@ -1,3 +1,4 @@
+import dns from 'node:dns/promises';
 import express from 'express';
 import fs from 'fs';
 import path from 'path';
@@ -9,6 +10,7 @@ import {
   SIBLING_DISCOUNT_PERCENT,
   SPP_BY_JENJANG,
   TUTOR_HONOR_PER_SESSION,
+  validateEmailAddressFormat,
 } from '../src/lib/businessRules.ts';
 import {
   SEED_CLASSES,
@@ -152,6 +154,67 @@ const PROTECTED_COLLECTIONS = new Set([
   'feature_flags',
 ]);
 
+async function verifyEmailDomainMx(rawEmail: string): Promise<
+  | { valid: true; email: string; domain: string; mxCount: number; skippedDnsCheck?: boolean }
+  | { valid: false; error: string; code: string; domain?: string }
+> {
+  const formatCheck = validateEmailAddressFormat(rawEmail, { strictDomainPolicy: true });
+  if (!formatCheck.ok) {
+    return { valid: false, error: formatCheck.error, code: 'INVALID_FORMAT' };
+  }
+
+  const { email, domain } = formatCheck;
+
+  try {
+    const mxRecords = await Promise.race([
+      dns.resolveMx(domain),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(Object.assign(new Error('DNS timeout'), { code: 'ETIMEOUT' })), 3500)
+      ),
+    ]);
+
+    const activeMx = mxRecords.filter(
+      (record) => record.exchange && record.exchange.trim() !== '' && record.exchange.trim() !== '.'
+    );
+
+    if (activeMx.length === 0) {
+      return {
+        valid: false,
+        code: 'NO_MX_RECORD',
+        domain,
+        error: `Domain email "${domain}" tidak memiliki server penerima email aktif (MX record). Gunakan alamat email aktif yang valid.`,
+      };
+    }
+
+    return {
+      valid: true,
+      email,
+      domain,
+      mxCount: activeMx.length,
+    };
+  } catch (err: unknown) {
+    const dnsCode =
+      err && typeof err === 'object' && 'code' in err ? String((err as { code?: unknown }).code) : '';
+
+    if (dnsCode === 'ENOTFOUND' || dnsCode === 'ENODATA' || dnsCode === 'ENOTIMP') {
+      return {
+        valid: false,
+        code: dnsCode,
+        domain,
+        error: `Domain email "${domain}" tidak ditemukan atau tidak dapat menerima email. Periksa kembali penulisan alamat email Anda.`,
+      };
+    }
+
+    return {
+      valid: true,
+      email,
+      domain,
+      mxCount: 0,
+      skippedDnsCheck: true,
+    };
+  }
+}
+
 export function createApiRouter(): express.Router {
   const router = express.Router();
   router.use(express.json());
@@ -229,6 +292,14 @@ export function createApiRouter(): express.Router {
             'Daftar akun uji standar per aktor (Orang Tua, Tutor, Admin, Pemilik) beserta skenario pengujian.',
         },
         {
+          method: 'POST',
+          path: '/api/validate-email',
+          auth: 'Publik',
+          body: { email: 'string' },
+          description:
+            'Memvalidasi format email, typo domain, domain sementara/palsu, serta memeriksa DNS MX record aktif sebelum pendaftaran akun.',
+        },
+        {
           method: 'GET',
           path: '/api/collections/:name',
           auth: 'Bearer Token (Firebase Auth ID Token)',
@@ -237,6 +308,16 @@ export function createApiRouter(): express.Router {
         },
       ],
     });
+  });
+
+  router.post('/validate-email', async (req, res) => {
+    const email = typeof req.body?.email === 'string' ? req.body.email : '';
+    const result = await verifyEmailDomainMx(email);
+    if (!result.valid) {
+      res.status(422).json(result);
+      return;
+    }
+    res.json(result);
   });
 
   router.get('/akun-uji', (_req, res) => {

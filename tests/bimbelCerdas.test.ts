@@ -236,20 +236,47 @@ describe('Pengujian Aturan Bisnis Bimbel Cerdas (Unit Tests)', () => {
     const shortPass = validateEmailPasswordInput({
       mode: 'register',
       nama: 'Budi',
-      email: 'budi@example.com',
+      email: 'budi@gmail.com',
       password: '123',
     });
     assert.equal(shortPass.ok, false);
 
+    const typoEmail = validateEmailPasswordInput({
+      mode: 'register',
+      nama: 'Budi',
+      email: 'budi@gmial.com',
+      password: 'password123',
+    });
+    assert.equal(typoEmail.ok, false);
+    if (!typoEmail.ok) {
+      assert.match(typoEmail.error, /gmail\.com/);
+    }
+
+    const fakeDisposableEmail = validateEmailPasswordInput({
+      mode: 'register',
+      nama: 'Budi',
+      email: 'budi@mailinator.com',
+      password: 'password123',
+    });
+    assert.equal(fakeDisposableEmail.ok, false);
+
+    const consecutiveDotsEmail = validateEmailPasswordInput({
+      mode: 'register',
+      nama: 'Budi',
+      email: 'budi..santoso@gmail.com',
+      password: 'password123',
+    });
+    assert.equal(consecutiveDotsEmail.ok, false);
+
     const validReg = validateEmailPasswordInput({
       mode: 'register',
       nama: '  Budi Santoso  ',
-      email: '  budi@example.com ',
+      email: '  budi@GMAIL.COM ',
       password: 'password123',
     });
     assert.equal(validReg.ok, true);
     if (validReg.ok) {
-      assert.equal(validReg.email, 'budi@example.com');
+      assert.equal(validReg.email, 'budi@gmail.com');
       assert.equal(validReg.nama, 'Budi Santoso');
     }
 
@@ -427,6 +454,26 @@ describe('Pengujian REST API Endpoints Bimbel Cerdas', () => {
 
       const unauthColRes = await fetch(`${base}/collections/invoices`);
       assert.equal(unauthColRes.status, 401);
+
+      const invalidDomainRes = await fetch(`${base}/validate-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'biduanacid@wiwdjkddj.com' }),
+      });
+      assert.equal(invalidDomainRes.status, 422);
+      const invalidDomainJson = (await invalidDomainRes.json()) as { valid: boolean; error: string };
+      assert.equal(invalidDomainJson.valid, false);
+      assert.match(invalidDomainJson.error, /wiwdjkddj\.com/);
+
+      const validDomainRes = await fetch(`${base}/validate-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'pengguna.resmi@gmail.com' }),
+      });
+      assert.equal(validDomainRes.status, 200);
+      const validDomainJson = (await validDomainRes.json()) as { valid: boolean; domain: string };
+      assert.equal(validDomainJson.valid, true);
+      assert.equal(validDomainJson.domain, 'gmail.com');
 
       const notFoundRes = await fetch(`${base}/tidak-ada`);
       assert.equal(notFoundRes.status, 404);
