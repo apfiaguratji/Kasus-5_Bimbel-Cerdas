@@ -31,6 +31,7 @@ import {
   handleFirestoreError,
   isBootstrapTeamEmail,
   OperationType,
+  resolveInitialActorProfile,
   testConnection,
 } from '../lib/firebase.ts';
 import {
@@ -487,7 +488,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       const canManageUsers = user.role === 'admin';
       try {
         await loadPublicCatalog();
-        if (isBootstrapOwner && canManageAll) {
+        if ((isBootstrapOwner || user.role === 'admin') && canManageAll) {
           await seedFirestoreIfEmpty();
         }
         if (canManageAll) {
@@ -751,7 +752,6 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     async (fbUser: FirebaseUser) => {
       const userRef = doc(db, 'users', fbUser.uid);
       const snap = await getDoc(userRef);
-      const isBootstrap = isBootstrapTeamEmail(fbUser.email);
       let profile: UserAccount;
       if (snap.exists()) {
         profile = {
@@ -759,12 +759,13 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
           ...stripTimestamps<Omit<UserAccount, 'id'>>(snap.data()),
         };
       } else {
-        const initialRole: UserRole = isBootstrap ? 'pemilik' : 'orang_tua';
+        const initial = resolveInitialActorProfile(fbUser.email, fbUser.displayName);
         const newProfile = {
           uid: fbUser.uid,
-          nama: fbUser.displayName || fbUser.email?.split('@')[0] || 'Pengguna Bimbel Cerdas',
+          nama: initial.nama,
           email: fbUser.email || '',
-          role: initialRole,
+          role: initial.role,
+          ...(initial.linkedTutorId ? { linkedTutorId: initial.linkedTutorId } : {}),
           noTelepon: '',
           alamat: '',
           statusAktif: true,

@@ -2,6 +2,7 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { doc, getDocFromServer, getFirestore } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
+import type { UserRole } from '../types.ts';
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
@@ -18,10 +19,40 @@ export const TEAM_BOOTSTRAP_EMAILS = [
   '12410388@student.unklab.ac.id',
 ] as const;
 
+export const DESIGNATED_ACTOR_PROFILES: Record<
+  string,
+  { role: UserRole; nama: string; linkedTutorId?: string }
+> = {
+  'tirsaadmin@gmail.com': { role: 'admin', nama: 'Tirsa (Admin)' },
+  'lilisortu@gmail.com': { role: 'orang_tua', nama: 'Lilis (Orang Tua)' },
+  'auroratutor@gmail.com': { role: 'tutor', nama: 'Aurora (Tutor)', linkedTutorId: 'tutor-1' },
+  'gracepemilik@gmail.com': { role: 'pemilik', nama: 'Grace (Pemilik)' },
+};
+
 export function isBootstrapTeamEmail(email?: string | null): boolean {
   if (!email) return false;
   const normalized = email.trim().toLowerCase();
   return TEAM_BOOTSTRAP_EMAILS.some((allowed) => allowed === normalized);
+}
+
+export function resolveInitialActorProfile(
+  email?: string | null,
+  displayName?: string | null
+): { role: UserRole; nama: string; linkedTutorId?: string } {
+  const normalized = (email || '').trim().toLowerCase();
+  const designated = DESIGNATED_ACTOR_PROFILES[normalized];
+  if (designated) {
+    return {
+      role: designated.role,
+      nama: displayName?.trim() || designated.nama,
+      ...(designated.linkedTutorId ? { linkedTutorId: designated.linkedTutorId } : {}),
+    };
+  }
+  const initialRole: UserRole = isBootstrapTeamEmail(normalized) ? 'pemilik' : 'orang_tua';
+  return {
+    role: initialRole,
+    nama: displayName?.trim() || normalized.split('@')[0] || 'Pengguna Bimbel Cerdas',
+  };
 }
 
 export async function testConnection(): Promise<boolean> {

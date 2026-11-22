@@ -52,9 +52,31 @@ service cloud.firestore {
         && (!userExists() || currentUserRole() in ['admin', 'pemilik']);
     }
 
+    function isDesignatedAdminEmail() {
+      return isVerifiedUser()
+        && request.auth.token.email is string
+        && request.auth.token.email.lower() == 'tirsaadmin@gmail.com'
+        && (!userExists() || currentUserRole() == 'admin');
+    }
+
+    function isDesignatedPemilikEmail() {
+      return isVerifiedUser()
+        && request.auth.token.email is string
+        && request.auth.token.email.lower() == 'gracepemilik@gmail.com'
+        && (!userExists() || currentUserRole() == 'pemilik');
+    }
+
+    function isDesignatedTutorEmail() {
+      return isVerifiedUser()
+        && request.auth.token.email is string
+        && request.auth.token.email.lower() == 'auroratutor@gmail.com'
+        && (!userExists() || currentUserRole() == 'tutor');
+    }
+
     function isAdmin() {
       return isVerifiedUser() && (
         isBootstrappedAdmin() ||
+        isDesignatedAdminEmail() ||
         exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
         (userExists() && currentUserRole() == 'admin')
       );
@@ -63,6 +85,7 @@ service cloud.firestore {
     function isPemilik() {
       return isVerifiedUser() && (
         isBootstrappedAdmin() ||
+        isDesignatedPemilikEmail() ||
         (userExists() && currentUserRole() == 'pemilik')
       );
     }
@@ -70,6 +93,7 @@ service cloud.firestore {
     function isTutor() {
       return isVerifiedUser() && (
         isAdmin() ||
+        isDesignatedTutorEmail() ||
         (userExists() && currentUserRole() == 'tutor')
       );
     }
@@ -388,7 +412,13 @@ service cloud.firestore {
         && incoming().uid == request.auth.uid
         && incoming().createdAt == request.time
         && incoming().updatedAt == request.time
-        && (incoming().role == 'orang_tua' || isBootstrappedAdmin());
+        && (
+          incoming().role == 'orang_tua' ||
+          isBootstrappedAdmin() ||
+          (isDesignatedAdminEmail() && incoming().role == 'admin') ||
+          (isDesignatedPemilikEmail() && incoming().role == 'pemilik') ||
+          (isDesignatedTutorEmail() && incoming().role == 'tutor')
+        );
       allow update: if isVerifiedUser() && isValidId(userId) && isValidUser(incoming())
         && incoming().uid == existing().uid
         && incoming().createdAt == existing().createdAt
