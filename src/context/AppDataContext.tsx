@@ -53,6 +53,7 @@ import {
   SEED_TUTOR_ATTENDANCE,
   SEED_TUTORS,
   SEED_WAITLISTS,
+  TEST_ACCOUNTS_BY_ROLE,
 } from '../data/seedData.ts';
 import type {
   AbsenceFollowup,
@@ -115,6 +116,10 @@ interface AppDataContextValue {
   switchPreviewRole: (role: UserRole) => void;
   loginWithGoogle: () => Promise<void>;
   loginAsDemo: (role: UserRole) => void;
+  loginWithTestCredential: (
+    email: string,
+    kodeUji: string
+  ) => { ok: boolean; error?: string; role?: UserRole };
   logout: () => Promise<void>;
   updateOwnProfile: (payload: { nama: string; noTelepon: string; alamat: string }) => Promise<void>;
 
@@ -820,6 +825,28 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       addToast('info', `Mode Demo: ${roleLabels[role]}`, 'Seluruh alur dan aturan bisnis siap diuji.');
     },
     [addToast]
+  );
+
+  const loginWithTestCredential = useCallback(
+    (email: string, kodeUji: string): { ok: boolean; error?: string; role?: UserRole } => {
+      const normalizedEmail = email.trim().toLowerCase();
+      const trimmedCode = kodeUji.trim();
+      if (!normalizedEmail || !trimmedCode) {
+        return { ok: false, error: 'Email dan kata sandi akun uji wajib diisi.' };
+      }
+      const matched = TEST_ACCOUNTS_BY_ROLE.find(
+        (acc) => acc.email.toLowerCase() === normalizedEmail && acc.kodeUji === trimmedCode
+      );
+      if (!matched) {
+        return {
+          ok: false,
+          error: 'Email atau kata sandi akun uji tidak sesuai. Periksa daftar akun uji per aktor.',
+        };
+      }
+      loginAsDemo(matched.role);
+      return { ok: true, role: matched.role };
+    },
+    [loginAsDemo]
   );
 
   const logout = useCallback(async () => {
@@ -2067,6 +2094,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         switchPreviewRole,
         loginWithGoogle,
         loginAsDemo,
+        loginWithTestCredential,
         logout,
         updateOwnProfile,
         usersList,

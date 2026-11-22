@@ -12,6 +12,7 @@ import type {
   Schedule,
   Student,
   StudentAttendance,
+  TestAccountCredential,
   Tutor,
   TutorAttendance,
   UserAccount,
@@ -61,6 +62,65 @@ export const DEMO_USERS: Record<'orang_tua' | 'tutor' | 'admin' | 'pemilik', Use
     statusAktif: true,
   },
 };
+
+export const TEST_ACCOUNTS_BY_ROLE: TestAccountCredential[] = [
+  {
+    role: 'orang_tua',
+    label: 'Orang Tua',
+    nama: DEMO_USERS.orang_tua.nama,
+    email: DEMO_USERS.orang_tua.email,
+    kodeUji: 'OrtuUji#2026',
+    ringkasanData:
+      'Memiliki 2 anak terdaftar (Naufal & Keisha Wijaya), diskon keluarga 10% aktif, 1 peringatan absen 3×, dan tagihan SPP siap uji.',
+    skenarioUji: [
+      'Daftar anak ke-3 (diskon otomatis 10%) atau uji kelas penuh → Daftar Tunggu',
+      'Cek notifikasi absen 3× berturut-turut, tagihan SPP & ajukan keringanan',
+      'Unduh / lihat kuitansi pembayaran resmi',
+    ],
+  },
+  {
+    role: 'tutor',
+    label: 'Tutor',
+    nama: DEMO_USERS.tutor.nama,
+    email: DEMO_USERS.tutor.email,
+    kodeUji: 'TutorUji#2026',
+    ringkasanData:
+      'Terhubung ke profil pengajar Matematika SD & SMP dengan jadwal kelas SD-A dan SMP-A serta pencatatan honor Rp75.000/sesi.',
+    skenarioUji: [
+      'Input absensi siswa & konfirmasi kehadiran mengajar (90 menit)',
+      'Uji pengalihan sesi ke tutor pengganti agar honor masuk ke pengganti',
+      'Picu absen 3× berturut-turut untuk melihat alarm otomatis ke Orang Tua & Admin',
+    ],
+  },
+  {
+    role: 'admin',
+    label: 'Admin',
+    nama: DEMO_USERS.admin.nama,
+    email: DEMO_USERS.admin.email,
+    kodeUji: 'AdminUji#2026',
+    ringkasanData:
+      'Akses operasional penuh: pendaftaran, antrean daftar tunggu, konfirmasi pembayaran SPP/pendaftaran, follow-up telepon bolos, master CRUD, dan Feature Flags.',
+    skenarioUji: [
+      'Konfirmasi pembayaran tagihan SPP dan cetak kuitansi resmi',
+      'Kelola antrean Daftar Tunggu & catat hasil panggilan siswa absen 3×',
+      'Aktifkan Fitur Beta Dashboard (Feature Flags) khusus peran Admin',
+    ],
+  },
+  {
+    role: 'pemilik',
+    label: 'Pemilik',
+    nama: DEMO_USERS.pemilik.nama,
+    email: DEMO_USERS.pemilik.email,
+    kodeUji: 'PemilikUji#2026',
+    ringkasanData:
+      'Dashboard eksekutif: arus kas masuk/keluar, rekap honor tutor reguler & pengganti, daftar tunggakan, persetujuan keringanan, dan ekspor Laporan PDF.',
+    skenarioUji: [
+      'Setujui atau tolak pengajuan keringanan SPP dari Orang Tua',
+      'Tinjau rekap honor tutor (Rp75.000/sesi) & status kapasitas kelas',
+      'Unduh Laporan Eksekutif bulanan dalam format PDF',
+    ],
+  },
+];
 
 export const SEED_PROGRAMS: Program[] = [
   {

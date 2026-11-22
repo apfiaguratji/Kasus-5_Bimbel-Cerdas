@@ -262,4 +262,14 @@ export interface FeatureFlagConfig {
   updatedBy?: string;
 }
 
+export interface TestAccountCredential {
+  role: UserRole;
+  label: string;
+  nama: string;
+  email: string;
+  kodeUji: string;
+  ringkasanData: string;
+  skenarioUji: string[];
+}
+
 export type AppView = 'public' | 'login' | 'dashboard';

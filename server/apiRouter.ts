@@ -15,6 +15,7 @@ import {
   SEED_PROGRAMS,
   SEED_SCHEDULES,
   SEED_TUTORS,
+  TEST_ACCOUNTS_BY_ROLE,
 } from '../src/data/seedData.ts';
 import type { Jenjang, Tutor, TutorAttendance } from '../src/types.ts';
 
@@ -211,12 +212,29 @@ export function createApiRouter(): express.Router {
         },
         {
           method: 'GET',
+          path: '/api/akun-uji',
+          auth: 'Publik',
+          description:
+            'Daftar akun uji standar per aktor (Orang Tua, Tutor, Admin, Pemilik) beserta skenario pengujian.',
+        },
+        {
+          method: 'GET',
           path: '/api/collections/:name',
           auth: 'Bearer Token (Firebase Auth ID Token)',
           description:
             'Mengambil dokumen koleksi terproteksi (students, invoices, payments, receipts, dll.) sesuai aturan firestore.rules.',
         },
       ],
+    });
+  });
+
+  router.get('/akun-uji', (_req, res) => {
+    res.json({
+      mode: 'sandbox-demo',
+      totalAktor: TEST_ACCOUNTS_BY_ROLE.length,
+      catatan:
+        'Gunakan email dan kodeUji di halaman Masuk Bimbel Cerdas untuk menguji keempat aktor secara terisolasi.',
+      data: TEST_ACCOUNTS_BY_ROLE,
     });
   });
 

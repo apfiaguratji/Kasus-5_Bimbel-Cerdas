@@ -30,6 +30,7 @@ import {
   SEED_STUDENTS,
   SEED_TUTOR_ATTENDANCE,
   SEED_TUTORS,
+  TEST_ACCOUNTS_BY_ROLE,
 } from '../src/data/seedData.ts';
 import type { StudentAttendance, TutorAttendance, UserRole } from '../src/types.ts';
 
@@ -257,6 +258,13 @@ describe('Pengujian Integritas Data Seed, RBAC & Feature Flags', () => {
     assert.ok(secondChildInvoice);
     assert.equal(secondChildInvoice.diskonPersen, 10);
     assert.equal(secondChildInvoice.jumlahTagihan, 270_000);
+
+    assert.equal(TEST_ACCOUNTS_BY_ROLE.length, 4);
+    for (const acc of TEST_ACCOUNTS_BY_ROLE) {
+      assert.equal(acc.email, DEMO_USERS[acc.role].email);
+      assert.ok(acc.kodeUji.length >= 8);
+      assert.ok(acc.skenarioUji.length >= 3);
+    }
   });
 
   it('memastikan feature flags beta terkunci khusus untuk peran Admin', () => {
@@ -342,6 +350,18 @@ describe('Pengujian REST API Endpoints Bimbel Cerdas', () => {
       assert.equal(honorRes.status, 200);
       const honorJson = (await honorRes.json()) as { totalHonorKeseluruhan: number };
       assert.equal(honorJson.totalHonorKeseluruhan, 300_000);
+
+      const akunUjiRes = await fetch(`${base}/akun-uji`);
+      assert.equal(akunUjiRes.status, 200);
+      const akunUjiJson = (await akunUjiRes.json()) as {
+        totalAktor: number;
+        data: Array<{ role: UserRole; email: string; kodeUji: string }>;
+      };
+      assert.equal(akunUjiJson.totalAktor, 4);
+      assert.deepEqual(
+        akunUjiJson.data.map((item) => item.role),
+        ['orang_tua', 'tutor', 'admin', 'pemilik']
+      );
 
       const unauthColRes = await fetch(`${base}/collections/invoices`);
       assert.equal(unauthColRes.status, 401);
