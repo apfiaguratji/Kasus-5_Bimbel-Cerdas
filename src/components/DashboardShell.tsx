@@ -29,7 +29,6 @@ export function DashboardShell({
   children: React.ReactNode;
 }) {
   const {
-    authMode,
     currentUser,
     activeRole,
     setView,
@@ -60,14 +59,9 @@ export function DashboardShell({
       </div>
 
       <div className="px-5 py-4 border-b border-white/12">
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-[11px] font-semibold tracking-wider uppercase text-[#93c5fd]">
-            Portal {ROLE_LABELS[activeRole]}
-          </p>
-          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/10 text-[#dbeafe]">
-            {authMode === 'firebase' ? 'Live DB' : 'Akun Uji'}
-          </span>
-        </div>
+        <p className="text-[11px] font-semibold tracking-wider uppercase text-[#93c5fd]">
+          Portal {ROLE_LABELS[activeRole]}
+        </p>
         <p className="text-sm font-semibold text-white mt-0.5 truncate">{currentUser?.nama}</p>
         <p className="text-xs text-[#bfdbfe]/75 truncate">{currentUser?.email}</p>
       </div>

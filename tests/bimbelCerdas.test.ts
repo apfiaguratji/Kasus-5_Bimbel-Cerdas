@@ -12,6 +12,7 @@ import {
   formatPeriode,
   formatRupiah,
   generateReceiptNumber,
+  mapFirebaseAuthError,
   MAX_CLASS_CAPACITY,
   MIN_CLASS_STUDENTS,
   REGISTRATION_FEE,
@@ -20,6 +21,7 @@ import {
   SIBLING_DISCOUNT_PERCENT,
   SPP_BY_JENJANG,
   TUTOR_HONOR_PER_SESSION,
+  validateEmailPasswordInput,
 } from '../src/lib/businessRules.ts';
 import {
   DEMO_USERS,
@@ -225,6 +227,44 @@ describe('Pengujian Aturan Bisnis Bimbel Cerdas (Unit Tests)', () => {
     assert.equal(generateReceiptNumber(7, '2026-11-18'), 'KW-BC-20261118-0007');
     assert.equal(formatPeriode(11, 2026), 'November 2026');
     assert.match(formatRupiah(300_000), /^Rp300[.,]000$/);
+  });
+
+  it('memvalidasi input form Email & Kata Sandi serta menerjemahkan kode galat Firebase Auth', () => {
+    const emptyEmail = validateEmailPasswordInput({ mode: 'login', email: '', password: 'secret' });
+    assert.equal(emptyEmail.ok, false);
+
+    const shortPass = validateEmailPasswordInput({
+      mode: 'register',
+      nama: 'Budi',
+      email: 'budi@example.com',
+      password: '123',
+    });
+    assert.equal(shortPass.ok, false);
+
+    const validReg = validateEmailPasswordInput({
+      mode: 'register',
+      nama: '  Budi Santoso  ',
+      email: '  budi@example.com ',
+      password: 'password123',
+    });
+    assert.equal(validReg.ok, true);
+    if (validReg.ok) {
+      assert.equal(validReg.email, 'budi@example.com');
+      assert.equal(validReg.nama, 'Budi Santoso');
+    }
+
+    assert.match(
+      mapFirebaseAuthError({ code: 'auth/invalid-credential' }),
+      /Email atau kata sandi tidak sesuai/
+    );
+    assert.match(
+      mapFirebaseAuthError({ code: 'auth/operation-not-allowed' }),
+      /Firebase Console/
+    );
+    assert.match(
+      mapFirebaseAuthError({ code: 'auth/unauthorized-domain' }, 'kasus-5-bimbel-cerdas.vercel.app'),
+      /kasus-5-bimbel-cerdas\.vercel\.app/
+    );
   });
 });
 

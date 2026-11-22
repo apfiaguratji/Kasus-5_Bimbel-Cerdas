@@ -171,3 +171,71 @@ export function canRolePerformAction(
   if (!role) return false;
   return ROLE_PERMISSIONS[role]?.includes(action) ?? false;
 }
+
+export function validateEmailPasswordInput(input: {
+  mode: 'login' | 'register' | 'reset';
+  nama?: string;
+  email: string;
+  password?: string;
+}): { ok: true; email: string; nama?: string } | { ok: false; error: string } {
+  const trimmedEmail = input.email.trim();
+  const trimmedNama = input.nama?.trim() || '';
+  const password = input.password || '';
+
+  if (input.mode === 'register' && trimmedNama.length < 2) {
+    return { ok: false, error: 'Nama lengkap wajib diisi minimal 2 karakter.' };
+  }
+
+  if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+    return { ok: false, error: 'Masukkan alamat email yang valid.' };
+  }
+
+  if (input.mode !== 'reset') {
+    if (!password) {
+      return { ok: false, error: 'Kata sandi wajib diisi.' };
+    }
+    if (input.mode === 'register' && password.length < 6) {
+      return { ok: false, error: 'Kata sandi minimal 6 karakter.' };
+    }
+  }
+
+  return { ok: true, email: trimmedEmail, ...(input.mode === 'register' ? { nama: trimmedNama } : {}) };
+}
+
+export function mapFirebaseAuthError(err: unknown, host = ''): string {
+  const code =
+    err && typeof err === 'object' && 'code' in err
+      ? String((err as { code?: unknown }).code)
+      : '';
+
+  switch (code) {
+    case 'auth/invalid-credential':
+    case 'auth/wrong-password':
+    case 'auth/user-not-found':
+      return 'Email atau kata sandi tidak sesuai. Periksa kembali atau daftar akun terlebih dahulu.';
+    case 'auth/invalid-email':
+      return 'Format alamat email tidak valid.';
+    case 'auth/email-already-in-use':
+      return 'Email ini sudah terdaftar. Silakan masuk menggunakan kata sandi Anda atau Google.';
+    case 'auth/weak-password':
+      return 'Kata sandi terlalu lemah. Gunakan minimal 6 karakter.';
+    case 'auth/operation-not-allowed':
+      return 'Login Email & Kata Sandi belum diaktifkan di Firebase Console (Authentication → Sign-in method → Email/Password).';
+    case 'auth/too-many-requests':
+      return 'Terlalu banyak percobaan gagal. Silakan tunggu beberapa menit lalu coba lagi.';
+    case 'auth/user-disabled':
+      return 'Akun ini telah dinonaktifkan pada sistem autentikasi.';
+    case 'auth/network-request-failed':
+      return 'Gagal terhubung ke server autentikasi. Periksa koneksi internet Anda.';
+    case 'auth/unauthorized-domain':
+      return `Domain "${host}" belum terdaftar di Firebase Authorized Domains. Tambahkan "${host}" di Firebase Console → Authentication → Settings → Authorized domains.`;
+    case 'auth/popup-blocked':
+      return 'Popup login Google diblokir browser. Izinkan pop-up untuk situs ini lalu coba lagi.';
+    case 'auth/popup-closed-by-user':
+      return 'Jendela login Google ditutup sebelum proses selesai.';
+    default:
+      return err instanceof Error && err.message
+        ? err.message
+        : 'Terjadi kesalahan saat proses autentikasi.';
+  }
+}

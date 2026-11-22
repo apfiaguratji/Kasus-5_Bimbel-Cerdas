@@ -19,7 +19,6 @@ import {
   X,
 } from 'lucide-react';
 import { useAppData } from '../../context/AppDataContext.tsx';
-import { TEST_ACCOUNTS_BY_ROLE } from '../../data/seedData.ts';
 import {
   computeClassStatus,
   formatRupiah,
@@ -1721,42 +1720,6 @@ export function AdminDashboard() {
                   })}
                 </tbody>
               </table>
-            </div>
-          </div>
-
-          <div className="bg-white border border-[#dce6f7] rounded-2xl p-5 sm:p-6 space-y-4">
-            <div>
-              <h2 className="text-lg font-display font-semibold text-[#0b1e4b]">
-                Daftar Akun Uji Resmi per Aktor (Mode Sandbox)
-              </h2>
-              <p className="text-xs text-[#475d85] mt-1">
-                Kredensial ini dapat digunakan di halaman Login (atau saat presentasi/UAT) untuk
-                menguji keempat aktor tanpa mengganggu data produksi Firestore.
-              </p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {TEST_ACCOUNTS_BY_ROLE.map((acc) => (
-                <div
-                  key={acc.role}
-                  className="rounded-xl border border-[#dce6f7] bg-[#f8fbff] p-4 space-y-2"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-bold text-[#0b1e4b]">{acc.label}</span>
-                    <span className="text-xs text-[#475d85]">{acc.nama}</span>
-                  </div>
-                  <div className="text-xs space-y-1 bg-white border border-[#e5edf9] rounded-lg p-2.5">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-[#566b94]">Email:</span>
-                      <code className="font-mono text-[#0b1e4b]">{acc.email}</code>
-                    </div>
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-[#566b94]">Sandi Uji:</span>
-                      <code className="font-mono font-semibold text-[#0b1e4b]">{acc.kodeUji}</code>
-                    </div>
-                  </div>
-                  <p className="text-xs text-[#475d85] leading-relaxed">{acc.ringkasanData}</p>
-                </div>
-              ))}
             </div>
           </div>
         </div>

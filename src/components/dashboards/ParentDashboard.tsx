@@ -11,7 +11,6 @@ import {
   X,
 } from 'lucide-react';
 import { useAppData } from '../../context/AppDataContext.tsx';
-import { DEMO_USERS } from '../../data/seedData.ts';
 import {
   calculateSppInvoice,
   formatRupiah,
@@ -25,7 +24,6 @@ import { StatusText } from '../StatusText.tsx';
 
 export function ParentDashboard() {
   const {
-    authMode,
     currentUser,
     programs,
     classes,
@@ -45,8 +43,7 @@ export function ParentDashboard() {
     addToast,
   } = useAppData();
 
-  const effectiveParentUid =
-    authMode === 'demo' ? DEMO_USERS.orang_tua.uid : currentUser?.uid || '';
+  const effectiveParentUid = currentUser?.uid || '';
 
   const myStudents = useMemo(
     () => students.filter((s) => s.parentUid === effectiveParentUid),

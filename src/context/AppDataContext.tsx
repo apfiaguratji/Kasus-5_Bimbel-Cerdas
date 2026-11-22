@@ -1,5 +1,15 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
+import {
+  createUserWithEmailAndPassword,
+  onAuthStateChanged,
+  sendEmailVerification,
+  sendPasswordResetEmail,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  signOut,
+  updateProfile,
+  type User as FirebaseUser,
+} from 'firebase/auth';
 import {
   collection,
   deleteDoc,
@@ -30,15 +40,16 @@ import {
   computeClassStatus,
   formatPeriode,
   generateReceiptNumber,
+  mapFirebaseAuthError,
   MAX_CLASS_CAPACITY,
   MIN_CLASS_STUDENTS,
   type ProtectedAction,
   REGISTRATION_FEE,
   SESSION_DURATION_MINUTES,
   TUTOR_HONOR_PER_SESSION,
+  validateEmailPasswordInput,
 } from '../lib/businessRules.ts';
 import {
-  DEMO_USERS,
   SEED_CLASSES,
   SEED_FEATURE_FLAGS,
   SEED_FOLLOWUPS,
@@ -55,7 +66,6 @@ import {
   SEED_TUTOR_ATTENDANCE,
   SEED_TUTORS,
   SEED_WAITLISTS,
-  TEST_ACCOUNTS_BY_ROLE,
 } from '../data/seedData.ts';
 import type {
   AbsenceFollowup,
@@ -109,17 +119,25 @@ interface RecordAttendanceInput {
 interface AppDataContextValue {
   view: AppView;
   setView: (v: AppView) => void;
-  authMode: 'none' | 'demo' | 'firebase';
+  authMode: 'none' | 'firebase';
   authReady: boolean;
   isLoggingIn: boolean;
+  pendingVerificationEmail: string | null;
   currentUser: UserAccount | null;
   activeRole: UserRole;
   loginWithGoogle: () => Promise<void>;
-  loginAsDemo: (role: UserRole) => void;
-  loginWithTestCredential: (
+  loginWithEmailPassword: (
     email: string,
-    kodeUji: string
-  ) => { ok: boolean; error?: string; role?: UserRole };
+    password: string
+  ) => Promise<{ ok: boolean; error?: string; needsVerification?: boolean }>;
+  registerWithEmailPassword: (
+    nama: string,
+    email: string,
+    password: string
+  ) => Promise<{ ok: boolean; error?: string }>;
+  sendPasswordReset: (email: string) => Promise<{ ok: boolean; error?: string }>;
+  resendVerificationEmail: () => Promise<void>;
+  checkEmailVerification: () => Promise<boolean>;
   logout: () => Promise<void>;
   updateOwnProfile: (payload: { nama: string; noTelepon: string; alamat: string }) => Promise<void>;
 
@@ -224,12 +242,13 @@ function formatDocDate(val: unknown): string {
 
 export function AppDataProvider({ children }: { children: React.ReactNode }) {
   const [view, setView] = useState<AppView>('public');
-  const [authMode, setAuthMode] = useState<'none' | 'demo' | 'firebase'>('none');
+  const [authMode, setAuthMode] = useState<'none' | 'firebase'>('none');
   const [authReady, setAuthReady] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
 
-  const [usersList, setUsersList] = useState<UserAccount[]>(Object.values(DEMO_USERS));
+  const [usersList, setUsersList] = useState<UserAccount[]>([]);
   const [programs, setPrograms] = useState<Program[]>(SEED_PROGRAMS);
   const [tutors, setTutors] = useState<Tutor[]>(SEED_TUTORS);
   const [classes, setClasses] = useState<ClassRoom[]>(SEED_CLASSES);
@@ -728,57 +747,75 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     [loadPublicCatalog, seedFirestoreIfEmpty]
   );
 
+  const hydrateVerifiedFirebaseUser = useCallback(
+    async (fbUser: FirebaseUser) => {
+      const userRef = doc(db, 'users', fbUser.uid);
+      const snap = await getDoc(userRef);
+      const isBootstrap = isBootstrapTeamEmail(fbUser.email);
+      let profile: UserAccount;
+      if (snap.exists()) {
+        profile = {
+          id: snap.id,
+          ...stripTimestamps<Omit<UserAccount, 'id'>>(snap.data()),
+        };
+      } else {
+        const initialRole: UserRole = isBootstrap ? 'pemilik' : 'orang_tua';
+        const newProfile = {
+          uid: fbUser.uid,
+          nama: fbUser.displayName || fbUser.email?.split('@')[0] || 'Pengguna Bimbel Cerdas',
+          email: fbUser.email || '',
+          role: initialRole,
+          noTelepon: '',
+          alamat: '',
+          statusAktif: true,
+        };
+        await setDoc(userRef, {
+          ...newProfile,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+        profile = { id: fbUser.uid, ...newProfile };
+      }
+      if (!profile.statusAktif) {
+        await signOut(auth);
+        setAuthMode('none');
+        setCurrentUser(null);
+        addToast(
+          'error',
+          'Akun dinonaktifkan',
+          'Akun Anda sedang nonaktif. Hubungi Admin Bimbel Cerdas.'
+        );
+        return;
+      }
+      setPendingVerificationEmail(null);
+      setAuthMode('firebase');
+      setCurrentUser(profile);
+      await loadFirebaseWorkspace(profile);
+      setView('dashboard');
+    },
+    [addToast, loadFirebaseWorkspace]
+  );
+
   useEffect(() => {
     testConnection();
     loadPublicCatalog();
     const unsub = onAuthStateChanged(auth, async (fbUser) => {
       if (!fbUser) {
+        setPendingVerificationEmail(null);
+        setAuthMode('none');
+        setCurrentUser(null);
+        setAuthReady(true);
+        return;
+      }
+      if (!fbUser.emailVerified) {
+        setPendingVerificationEmail(fbUser.email || '');
+        setAuthMode('none');
+        setCurrentUser(null);
         setAuthReady(true);
         return;
       }
       try {
-        const userRef = doc(db, 'users', fbUser.uid);
-        const snap = await getDoc(userRef);
-        const isBootstrap = isBootstrapTeamEmail(fbUser.email);
-        let profile: UserAccount;
-        if (snap.exists()) {
-          profile = {
-            id: snap.id,
-            ...stripTimestamps<Omit<UserAccount, 'id'>>(snap.data()),
-          };
-        } else {
-          const initialRole: UserRole = isBootstrap ? 'pemilik' : 'orang_tua';
-          const newProfile = {
-            uid: fbUser.uid,
-            nama: fbUser.displayName || fbUser.email?.split('@')[0] || 'Pengguna Bimbel Cerdas',
-            email: fbUser.email || '',
-            role: initialRole,
-            noTelepon: '',
-            alamat: '',
-            statusAktif: true,
-          };
-          await setDoc(userRef, {
-            ...newProfile,
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
-          });
-          profile = { id: fbUser.uid, ...newProfile };
-        }
-        if (!profile.statusAktif) {
-          await signOut(auth);
-          setAuthMode('none');
-          setCurrentUser(null);
-          addToast(
-            'error',
-            'Akun dinonaktifkan',
-            'Akun Anda sedang nonaktif. Hubungi Admin Bimbel Cerdas.'
-          );
-          return;
-        }
-        setAuthMode('firebase');
-        setCurrentUser(profile);
-        await loadFirebaseWorkspace(profile);
-        setView('dashboard');
+        await hydrateVerifiedFirebaseUser(fbUser);
       } catch (err) {
         addToast('error', 'Gagal memuat data akun', 'Periksa koneksi atau hak akses Firestore.');
         handleFirestoreError(err, OperationType.GET, `users/${fbUser.uid}`);
@@ -787,7 +824,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       }
     });
     return () => unsub();
-  }, [addToast, loadFirebaseWorkspace, loadPublicCatalog]);
+  }, [addToast, hydrateVerifiedFirebaseUser, loadPublicCatalog]);
 
   const loginWithGoogle = useCallback(async () => {
     setIsLoggingIn(true);
@@ -795,90 +832,158 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       await signInWithPopup(auth, googleProvider);
       addToast('success', 'Berhasil masuk dengan Google', 'Selamat datang di Bimbel Cerdas.');
     } catch (err: unknown) {
-      const code =
-        err && typeof err === 'object' && 'code' in err
-          ? String((err as { code?: unknown }).code)
-          : '';
       const host = typeof window !== 'undefined' ? window.location.hostname : '';
-      let msg = err instanceof Error ? err.message : 'Gagal masuk dengan Google.';
-      if (code === 'auth/unauthorized-domain') {
-        msg = `Domain "${host}" belum terdaftar di Firebase Authorized Domains. Tambahkan "${host}" di Firebase Console → Authentication → Settings → Authorized domains, atau gunakan Akun Uji Sandbox di bawah.`;
-      } else if (code === 'auth/popup-blocked') {
-        msg = 'Popup login Google diblokir browser. Izinkan pop-up untuk situs ini lalu coba lagi.';
-      } else if (code === 'auth/popup-closed-by-user') {
-        msg = 'Jendela login Google ditutup sebelum proses selesai.';
-      }
-      addToast('error', 'Autentikasi gagal', msg);
+      addToast('error', 'Autentikasi gagal', mapFirebaseAuthError(err, host));
     } finally {
       setIsLoggingIn(false);
     }
   }, [addToast]);
 
-  const loginAsDemo = useCallback(
-    (role: UserRole) => {
-      setUsersList(Object.values(DEMO_USERS));
-      setPrograms(SEED_PROGRAMS);
-      setTutors(SEED_TUTORS);
-      setClasses(SEED_CLASSES);
-      setSchedules(SEED_SCHEDULES);
-      setStudents(SEED_STUDENTS);
-      setRegistrations(SEED_REGISTRATIONS);
-      setWaitlists(SEED_WAITLISTS);
-      setStudentAttendance(SEED_STUDENT_ATTENDANCE);
-      setTutorAttendance(SEED_TUTOR_ATTENDANCE);
-      setInvoices(SEED_INVOICES);
-      setPayments(SEED_PAYMENTS);
-      setReceipts(SEED_RECEIPTS);
-      setNotifications(SEED_NOTIFICATIONS);
-      setFollowups(SEED_FOLLOWUPS);
-      setReliefRequests(SEED_RELIEF_REQUESTS);
-      setFeatureFlags(SEED_FEATURE_FLAGS);
-      setAuthMode('demo');
-      setCurrentUser(DEMO_USERS[role]);
-      setView('dashboard');
-      const roleLabels: Record<UserRole, string> = {
-        orang_tua: 'Orang Tua',
-        tutor: 'Tutor',
-        admin: 'Admin',
-        pemilik: 'Pemilik',
-      };
-      addToast('info', `Mode Demo: ${roleLabels[role]}`, 'Seluruh alur dan aturan bisnis siap diuji.');
+  const loginWithEmailPassword = useCallback(
+    async (
+      email: string,
+      password: string
+    ): Promise<{ ok: boolean; error?: string; needsVerification?: boolean }> => {
+      const validation = validateEmailPasswordInput({ mode: 'login', email, password });
+      if (!validation.ok) {
+        return { ok: false, error: validation.error };
+      }
+      setIsLoggingIn(true);
+      try {
+        const cred = await signInWithEmailAndPassword(auth, validation.email, password);
+        if (!cred.user.emailVerified) {
+          setPendingVerificationEmail(cred.user.email || validation.email);
+          addToast(
+            'info',
+            'Verifikasi email diperlukan',
+            'Buka tautan verifikasi di kotak masuk email Anda terlebih dahulu.'
+          );
+          return { ok: true, needsVerification: true };
+        }
+        addToast('success', 'Berhasil masuk', 'Selamat datang kembali di Bimbel Cerdas.');
+        return { ok: true };
+      } catch (err: unknown) {
+        const host = typeof window !== 'undefined' ? window.location.hostname : '';
+        const msg = mapFirebaseAuthError(err, host);
+        return { ok: false, error: msg };
+      } finally {
+        setIsLoggingIn(false);
+      }
     },
     [addToast]
   );
 
-  const loginWithTestCredential = useCallback(
-    (email: string, kodeUji: string): { ok: boolean; error?: string; role?: UserRole } => {
-      const normalizedEmail = email.trim().toLowerCase();
-      const trimmedCode = kodeUji.trim();
-      if (!normalizedEmail || !trimmedCode) {
-        return { ok: false, error: 'Email dan kata sandi akun uji wajib diisi.' };
+  const registerWithEmailPassword = useCallback(
+    async (nama: string, email: string, password: string): Promise<{ ok: boolean; error?: string }> => {
+      const validation = validateEmailPasswordInput({ mode: 'register', nama, email, password });
+      if (!validation.ok) {
+        return { ok: false, error: validation.error };
       }
-      const matched = TEST_ACCOUNTS_BY_ROLE.find(
-        (acc) => acc.email.toLowerCase() === normalizedEmail && acc.kodeUji === trimmedCode
-      );
-      if (!matched) {
-        return {
-          ok: false,
-          error: 'Email atau kata sandi akun uji tidak sesuai. Periksa daftar akun uji per aktor.',
-        };
+      setIsLoggingIn(true);
+      try {
+        const cred = await createUserWithEmailAndPassword(auth, validation.email, password);
+        if (validation.nama) {
+          await updateProfile(cred.user, { displayName: validation.nama });
+        }
+        await sendEmailVerification(cred.user);
+        setPendingVerificationEmail(cred.user.email || validation.email);
+        addToast(
+          'success',
+          'Akun berhasil dibuat',
+          'Tautan verifikasi telah dikirim ke email Anda. Klik tautan tersebut lalu tekan "Saya Sudah Verifikasi".'
+        );
+        return { ok: true };
+      } catch (err: unknown) {
+        const host = typeof window !== 'undefined' ? window.location.hostname : '';
+        const msg = mapFirebaseAuthError(err, host);
+        return { ok: false, error: msg };
+      } finally {
+        setIsLoggingIn(false);
       }
-      loginAsDemo(matched.role);
-      return { ok: true, role: matched.role };
     },
-    [loginAsDemo]
+    [addToast]
   );
 
+  const sendPasswordReset = useCallback(
+    async (email: string): Promise<{ ok: boolean; error?: string }> => {
+      const validation = validateEmailPasswordInput({ mode: 'reset', email });
+      if (!validation.ok) {
+        return { ok: false, error: validation.error };
+      }
+      setIsLoggingIn(true);
+      try {
+        await sendPasswordResetEmail(auth, validation.email);
+        addToast(
+          'success',
+          'Email reset kata sandi dikirim',
+          `Periksa kotak masuk atau folder spam pada ${validation.email}.`
+        );
+        return { ok: true };
+      } catch (err: unknown) {
+        const host = typeof window !== 'undefined' ? window.location.hostname : '';
+        return { ok: false, error: mapFirebaseAuthError(err, host) };
+      } finally {
+        setIsLoggingIn(false);
+      }
+    },
+    [addToast]
+  );
+
+  const resendVerificationEmail = useCallback(async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+    setIsLoggingIn(true);
+    try {
+      await sendEmailVerification(user);
+      addToast(
+        'success',
+        'Email verifikasi dikirim ulang',
+        `Silakan periksa kotak masuk atau folder spam ${user.email || ''}.`
+      );
+    } catch (err: unknown) {
+      addToast('error', 'Gagal mengirim ulang email', mapFirebaseAuthError(err));
+    } finally {
+      setIsLoggingIn(false);
+    }
+  }, [addToast]);
+
+  const checkEmailVerification = useCallback(async (): Promise<boolean> => {
+    const user = auth.currentUser;
+    if (!user) return false;
+    setIsLoggingIn(true);
+    try {
+      await user.reload();
+      if (!user.emailVerified) {
+        addToast(
+          'info',
+          'Email belum terverifikasi',
+          'Klik tautan verifikasi di email Anda terlebih dahulu lalu coba lagi.'
+        );
+        return false;
+      }
+      await user.getIdToken(true);
+      await hydrateVerifiedFirebaseUser(user);
+      addToast('success', 'Email terverifikasi', 'Selamat datang di Bimbel Cerdas.');
+      return true;
+    } catch (err: unknown) {
+      addToast('error', 'Gagal memeriksa verifikasi', mapFirebaseAuthError(err));
+      return false;
+    } finally {
+      setIsLoggingIn(false);
+    }
+  }, [addToast, hydrateVerifiedFirebaseUser]);
+
   const logout = useCallback(async () => {
-    if (authMode === 'firebase') {
+    if (auth.currentUser) {
       await signOut(auth);
     }
+    setPendingVerificationEmail(null);
     setAuthMode('none');
     setCurrentUser(null);
     setFeatureFlags(SEED_FEATURE_FLAGS);
     setView('public');
     addToast('info', 'Anda telah keluar', 'Sampai jumpa kembali di Bimbel Cerdas.');
-  }, [addToast, authMode]);
+  }, [addToast]);
 
   const activeRole: UserRole = currentUser?.role || 'orang_tua';
 
@@ -995,10 +1100,9 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       const cls = classes.find((c) => c.id === input.idKelas);
       if (!prog || !cls) throw new Error('Program atau kelas tidak ditemukan.');
 
-      const parentUid = authMode === 'demo' ? DEMO_USERS.orang_tua.uid : currentUser.uid;
-      const parentName = authMode === 'demo' ? DEMO_USERS.orang_tua.nama : currentUser.nama;
-      const parentPhone =
-        (authMode === 'demo' ? DEMO_USERS.orang_tua.noTelepon : currentUser.noTelepon) || '-';
+      const parentUid = currentUser.uid;
+      const parentName = currentUser.nama;
+      const parentPhone = currentUser.noTelepon || '-';
 
       const familyChildren = students.filter((s) => s.parentUid === parentUid);
       const urutanAnak = familyChildren.length + 1;
@@ -2143,11 +2247,15 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         authMode,
         authReady,
         isLoggingIn,
+        pendingVerificationEmail,
         currentUser,
         activeRole,
         loginWithGoogle,
-        loginAsDemo,
-        loginWithTestCredential,
+        loginWithEmailPassword,
+        registerWithEmailPassword,
+        sendPasswordReset,
+        resendVerificationEmail,
+        checkEmailVerification,
         logout,
         updateOwnProfile,
         usersList,
