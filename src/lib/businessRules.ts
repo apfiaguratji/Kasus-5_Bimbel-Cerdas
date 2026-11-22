@@ -212,13 +212,17 @@ export function mapFirebaseAuthError(err: unknown, host = ''): string {
     case 'auth/invalid-credential':
     case 'auth/wrong-password':
     case 'auth/user-not-found':
-      return 'Email atau kata sandi tidak sesuai. Periksa kembali atau daftar akun terlebih dahulu.';
+      return 'Email atau kata sandi tidak sesuai. Jika email ini sebelumnya masuk lewat Google (belum punya kata sandi khusus aplikasi) atau salah sandi, klik "Lupa kata sandi?" atau masuk dengan Google lalu atur kata sandi di menu dashboard.';
     case 'auth/invalid-email':
       return 'Format alamat email tidak valid.';
     case 'auth/email-already-in-use':
-      return 'Email ini sudah terdaftar. Silakan masuk menggunakan kata sandi Anda atau Google.';
+      return 'Email ini sudah terdaftar. Silakan masuk menggunakan kata sandi Anda, Google, atau klik "Lupa kata sandi?".';
     case 'auth/weak-password':
       return 'Kata sandi terlalu lemah. Gunakan minimal 6 karakter.';
+    case 'auth/requires-recent-login':
+      return 'Untuk keamanan, silakan keluar lalu masuk kembali dengan Google sebelum mengatur kata sandi baru.';
+    case 'auth/provider-already-linked':
+      return 'Akun ini sudah memiliki metode login Email & Kata Sandi.';
     case 'auth/operation-not-allowed':
       return 'Login Email & Kata Sandi belum diaktifkan di Firebase Console (Authentication → Sign-in method → Email/Password).';
     case 'auth/too-many-requests':

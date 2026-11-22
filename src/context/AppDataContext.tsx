@@ -1,12 +1,15 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import {
   createUserWithEmailAndPassword,
+  EmailAuthProvider,
+  linkWithCredential,
   onAuthStateChanged,
   sendEmailVerification,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
+  updatePassword,
   updateProfile,
   type User as FirebaseUser,
 } from 'firebase/auth';
@@ -30,8 +33,8 @@ import {
   DESIGNATED_ACTOR_PROFILES,
   googleProvider,
   handleFirestoreError,
-  isBootstrapTeamEmail,
   OperationType,
+  OWNER_BOOTSTRAP_EMAIL,
   resolveInitialActorProfile,
   testConnection,
 } from '../lib/firebase.ts';
@@ -125,6 +128,7 @@ interface AppDataContextValue {
   authReady: boolean;
   isLoggingIn: boolean;
   pendingVerificationEmail: string | null;
+  hasPasswordProvider: boolean;
   currentUser: UserAccount | null;
   activeRole: UserRole;
   loginWithGoogle: () => Promise<void>;
@@ -138,6 +142,7 @@ interface AppDataContextValue {
     password: string
   ) => Promise<{ ok: boolean; error?: string }>;
   sendPasswordReset: (email: string) => Promise<{ ok: boolean; error?: string }>;
+  syncEmailPasswordCredential: (newPassword: string) => Promise<{ ok: boolean; error?: string }>;
   resendVerificationEmail: () => Promise<void>;
   checkEmailVerification: () => Promise<boolean>;
   logout: () => Promise<void>;
@@ -248,6 +253,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   const [authReady, setAuthReady] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [pendingVerificationEmail, setPendingVerificationEmail] = useState<string | null>(null);
+  const [hasPasswordProvider, setHasPasswordProvider] = useState(false);
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
 
   const [usersList, setUsersList] = useState<UserAccount[]>([]);
@@ -484,12 +490,12 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
   const loadFirebaseWorkspace = useCallback(
     async (user: UserAccount) => {
-      const isBootstrapOwner = isBootstrapTeamEmail(user.email);
+      const isBootstrapOwner = user.email.trim().toLowerCase() === OWNER_BOOTSTRAP_EMAIL;
       const canManageAll = user.role === 'admin' || user.role === 'pemilik';
       const canManageUsers = user.role === 'admin';
       try {
         await loadPublicCatalog();
-        if ((isBootstrapOwner || user.role === 'admin') && canManageAll) {
+        if (isBootstrapOwner || user.role === 'admin') {
           await seedFirestoreIfEmpty();
         }
         if (canManageAll) {
@@ -810,6 +816,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       setPendingVerificationEmail(null);
+      setHasPasswordProvider(fbUser.providerData.some((p) => p.providerId === 'password'));
       setAuthMode('firebase');
       setCurrentUser(profile);
       await loadFirebaseWorkspace(profile);
@@ -995,11 +1002,49 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     }
   }, [addToast, hydrateVerifiedFirebaseUser]);
 
+  const syncEmailPasswordCredential = useCallback(
+    async (newPassword: string): Promise<{ ok: boolean; error?: string }> => {
+      const fbUser = auth.currentUser;
+      if (!fbUser || !fbUser.email) {
+        return { ok: false, error: 'Sesi pengguna tidak ditemukan. Silakan masuk ulang.' };
+      }
+      if (!newPassword || newPassword.length < 6) {
+        return { ok: false, error: 'Kata sandi baru minimal 6 karakter.' };
+      }
+      setIsLoggingIn(true);
+      try {
+        const hasPwd = fbUser.providerData.some((p) => p.providerId === 'password');
+        if (hasPwd) {
+          await updatePassword(fbUser, newPassword);
+        } else {
+          const cred = EmailAuthProvider.credential(fbUser.email, newPassword);
+          await linkWithCredential(fbUser, cred);
+        }
+        await fbUser.reload();
+        setHasPasswordProvider(true);
+        addToast(
+          'success',
+          'Kata sandi disinkronkan',
+          `Sekarang ${fbUser.email} dapat masuk menggunakan Email & Kata Sandi ini maupun Google.`
+        );
+        return { ok: true };
+      } catch (err: unknown) {
+        const host = typeof window !== 'undefined' ? window.location.hostname : '';
+        const msg = mapFirebaseAuthError(err, host);
+        return { ok: false, error: msg };
+      } finally {
+        setIsLoggingIn(false);
+      }
+    },
+    [addToast]
+  );
+
   const logout = useCallback(async () => {
     if (auth.currentUser) {
       await signOut(auth);
     }
     setPendingVerificationEmail(null);
+    setHasPasswordProvider(false);
     setAuthMode('none');
     setCurrentUser(null);
     setFeatureFlags(SEED_FEATURE_FLAGS);
@@ -2270,12 +2315,14 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         authReady,
         isLoggingIn,
         pendingVerificationEmail,
+        hasPasswordProvider,
         currentUser,
         activeRole,
         loginWithGoogle,
         loginWithEmailPassword,
         registerWithEmailPassword,
         sendPasswordReset,
+        syncEmailPasswordCredential,
         resendVerificationEmail,
         checkEmailVerification,
         logout,

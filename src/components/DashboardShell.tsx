@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Globe, Lock, LogOut, Menu, X } from 'lucide-react';
+import { Eye, EyeOff, Globe, KeyRound, Lock, LogOut, Menu, X } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext.tsx';
 import type { UserRole } from '../types.ts';
 
@@ -31,10 +31,45 @@ export function DashboardShell({
   const {
     currentUser,
     activeRole,
+    hasPasswordProvider,
+    syncEmailPasswordCredential,
+    isLoggingIn,
     setView,
     logout,
   } = useAppData();
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const [pwdModalOpen, setPwdModalOpen] = useState(false);
+  const [newPwd, setNewPwd] = useState('');
+  const [confirmPwd, setConfirmPwd] = useState('');
+  const [showPwd, setShowPwd] = useState(false);
+  const [pwdError, setPwdError] = useState('');
+
+  const handleOpenPwdModal = () => {
+    setNewPwd('');
+    setConfirmPwd('');
+    setPwdError('');
+    setShowPwd(false);
+    setPwdModalOpen(true);
+  };
+
+  const handleSavePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPwdError('');
+    if (newPwd.length < 6) {
+      setPwdError('Kata sandi minimal 6 karakter.');
+      return;
+    }
+    if (newPwd !== confirmPwd) {
+      setPwdError('Konfirmasi kata sandi tidak cocok.');
+      return;
+    }
+    const res = await syncEmailPasswordCredential(newPwd);
+    if (res.ok) {
+      setPwdModalOpen(false);
+    } else if (res.error) {
+      setPwdError(res.error);
+    }
+  };
 
   const activeNav = navItems.find((n) => n.id === activeTab) || navItems[0];
 
@@ -109,6 +144,16 @@ export function DashboardShell({
 
       <div className="p-3 border-t border-white/12 space-y-1">
         <button
+          onClick={() => {
+            onClose?.();
+            handleOpenPwdModal();
+          }}
+          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-[#cbd5f5] hover:bg-white/10 hover:text-white transition-colors"
+        >
+          <KeyRound className="w-4 h-4 shrink-0" />
+          <span>{hasPasswordProvider ? 'Ubah Kata Sandi Login' : 'Atur Kata Sandi Email'}</span>
+        </button>
+        <button
           onClick={() => setView('public')}
           className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-[#cbd5f5] hover:bg-white/10 hover:text-white transition-colors"
         >
@@ -182,6 +227,102 @@ export function DashboardShell({
 
         <main className="flex-1 p-4 sm:p-8 max-w-6xl w-full mx-auto">{children}</main>
       </div>
+
+      {pwdModalOpen && (
+        <div className="no-print fixed inset-0 z-50 flex items-center justify-center bg-[#061845]/60 backdrop-blur-xs p-4">
+          <div className="w-full max-w-md rounded-2xl border border-[#dce6f7] bg-white p-6 shadow-xl space-y-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-lg font-display font-bold text-[#0b1e4b]">
+                  {hasPasswordProvider ? 'Ubah Kata Sandi Login' : 'Atur Kata Sandi Email'}
+                </h3>
+                <p className="text-xs text-[#566b94] mt-1">
+                  Sinkronkan kata sandi untuk{' '}
+                  <strong className="text-[#0b1e4b] break-all">{currentUser?.email}</strong> agar dapat
+                  masuk lewat form Email &amp; Kata Sandi maupun Google.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPwdModalOpen(false)}
+                aria-label="Tutup modal kata sandi"
+                className="p-1.5 rounded-lg text-[#566b94] hover:bg-[#eff5ff]"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSavePassword} className="space-y-3.5">
+              <div>
+                <label
+                  htmlFor="sync-new-password"
+                  className="block text-xs font-semibold text-[#374f7d] mb-1"
+                >
+                  Kata Sandi Baru
+                </label>
+                <div className="relative">
+                  <input
+                    id="sync-new-password"
+                    type={showPwd ? 'text' : 'password'}
+                    value={newPwd}
+                    onChange={(e) => setNewPwd(e.target.value)}
+                    placeholder="Minimal 6 karakter"
+                    className="w-full rounded-xl border border-[#cbd9f2] bg-white pl-3.5 pr-10 py-2 text-sm text-[#0b1e4b] focus:outline-none focus:border-[#2563eb]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPwd((prev) => !prev)}
+                    aria-label={showPwd ? 'Sembunyikan kata sandi' : 'Lihat kata sandi'}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#566b94] hover:text-[#0b1e4b]"
+                  >
+                    {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="sync-confirm-password"
+                  className="block text-xs font-semibold text-[#374f7d] mb-1"
+                >
+                  Ulangi Kata Sandi Baru
+                </label>
+                <input
+                  id="sync-confirm-password"
+                  type={showPwd ? 'text' : 'password'}
+                  value={confirmPwd}
+                  onChange={(e) => setConfirmPwd(e.target.value)}
+                  placeholder="Ketik ulang kata sandi"
+                  className="w-full rounded-xl border border-[#cbd9f2] bg-white px-3.5 py-2 text-sm text-[#0b1e4b] focus:outline-none focus:border-[#2563eb]"
+                />
+              </div>
+
+              {pwdError && (
+                <div className="rounded-xl border border-[#fecaca] bg-[#fef2f2] px-3 py-2 text-xs font-medium text-[#dc2626]">
+                  {pwdError}
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setPwdModalOpen(false)}
+                  className="px-4 py-2 rounded-xl border border-[#cbd9f2] text-xs font-semibold text-[#374f7d] hover:bg-[#eff5ff]"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isLoggingIn}
+                  className="px-4 py-2 rounded-xl bg-[#2563eb] hover:bg-[#1d4ed8] text-white text-xs font-semibold disabled:opacity-60"
+                >
+                  {isLoggingIn ? 'Menyimpan...' : 'Simpan & Sinkronkan'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

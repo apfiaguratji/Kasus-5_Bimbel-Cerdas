@@ -320,9 +320,18 @@ export function LoginPage() {
                 {formError && (
                   <div
                     role="alert"
-                    className="rounded-xl border border-[#fecaca] bg-[#fef2f2] px-3.5 py-2.5 text-xs font-medium text-[#dc2626]"
+                    className="rounded-xl border border-[#fecaca] bg-[#fef2f2] px-3.5 py-2.5 text-xs font-medium text-[#dc2626] space-y-1.5"
                   >
-                    {formError}
+                    <p>{formError}</p>
+                    {mode === 'login' && (
+                      <button
+                        type="button"
+                        onClick={() => switchMode('reset')}
+                        className="font-semibold underline text-[#b91c1c] hover:text-[#991b1b]"
+                      >
+                        Kirim tautan atur/sinkronkan kata sandi ke email ini →
+                      </button>
+                    )}
                   </div>
                 )}
 
