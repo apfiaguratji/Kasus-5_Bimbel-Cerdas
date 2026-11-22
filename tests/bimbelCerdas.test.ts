@@ -6,6 +6,7 @@ import { createApiRouter } from '../server/apiRouter.ts';
 import {
   calculateSppInvoice,
   calculateTutorHonorRecap,
+  canRolePerformAction,
   checkThreeConsecutiveAbsences,
   computeClassStatus,
   formatPeriode,
@@ -282,6 +283,27 @@ describe('Pengujian Integritas Data Seed, RBAC & Feature Flags', () => {
     assert.equal(evaluateFlag('orang_tua', 'betaAnalyticsForecast'), false);
     assert.equal(evaluateFlag('tutor', 'betaAnalyticsForecast'), false);
     assert.equal(evaluateFlag('pemilik', 'betaAnalyticsForecast'), false);
+
+    // Isolasi hak akses ketat per aktor (Pemilik tidak bisa akses fungsi Admin/Tutor/Orang Tua, dst.)
+    assert.equal(canRolePerformAction('pemilik', 'decide_relief'), true);
+    assert.equal(canRolePerformAction('pemilik', 'manage_payments'), false);
+    assert.equal(canRolePerformAction('pemilik', 'manage_users'), false);
+    assert.equal(canRolePerformAction('pemilik', 'record_tutor_attendance'), false);
+    assert.equal(canRolePerformAction('pemilik', 'register_child'), false);
+
+    assert.equal(canRolePerformAction('admin', 'manage_payments'), true);
+    assert.equal(canRolePerformAction('admin', 'manage_users'), true);
+    assert.equal(canRolePerformAction('admin', 'decide_relief'), false);
+    assert.equal(canRolePerformAction('admin', 'record_tutor_attendance'), false);
+
+    assert.equal(canRolePerformAction('tutor', 'record_tutor_attendance'), true);
+    assert.equal(canRolePerformAction('tutor', 'manage_payments'), false);
+    assert.equal(canRolePerformAction('tutor', 'decide_relief'), false);
+
+    assert.equal(canRolePerformAction('orang_tua', 'register_child'), true);
+    assert.equal(canRolePerformAction('orang_tua', 'submit_relief'), true);
+    assert.equal(canRolePerformAction('orang_tua', 'manage_payments'), false);
+    assert.equal(canRolePerformAction('orang_tua', 'decide_relief'), false);
   });
 
   it('memvalidasi daftar email anggota kelompok yang berhak atas akses bootstrap admin', () => {

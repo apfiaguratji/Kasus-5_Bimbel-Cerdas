@@ -31,6 +31,14 @@ service cloud.firestore {
       return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
+    function userExists() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function currentUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
     function isBootstrappedAdmin() {
       return isVerifiedUser()
         && request.auth.token.email is string
@@ -40,15 +48,8 @@ service cloud.firestore {
           '12410503@student.unklab.ac.id',
           '12410384@student.unklab.ac.id',
           '12410388@student.unklab.ac.id'
-        ];
-    }
-
-    function userExists() {
-      return exists(/databases/$(database)/documents/users/$(request.auth.uid));
-    }
-
-    function currentUserRole() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+        ]
+        && (!userExists() || currentUserRole() in ['admin', 'pemilik']);
     }
 
     function isAdmin() {

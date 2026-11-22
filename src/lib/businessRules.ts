@@ -4,6 +4,7 @@ import type {
   StudentAttendance,
   Tutor,
   TutorAttendance,
+  UserRole,
 } from '../types.ts';
 
 export const REGISTRATION_FEE = 100_000;
@@ -134,4 +135,39 @@ export function generateReceiptNumber(sequenceNumber: number, dateStr: string): 
   const compactDate = dateStr.replaceAll('-', '');
   const seq = String(sequenceNumber).padStart(4, '0');
   return `KW-BC-${compactDate}-${seq}`;
+}
+
+export type ProtectedAction =
+  | 'register_child'
+  | 'submit_relief'
+  | 'mark_notification_read'
+  | 'record_tutor_attendance'
+  | 'manage_payments'
+  | 'manage_waitlist'
+  | 'manage_followups'
+  | 'manage_master_data'
+  | 'manage_users'
+  | 'manage_feature_flags'
+  | 'decide_relief';
+
+export const ROLE_PERMISSIONS: Record<UserRole, readonly ProtectedAction[]> = {
+  orang_tua: ['register_child', 'submit_relief', 'mark_notification_read'],
+  tutor: ['record_tutor_attendance'],
+  admin: [
+    'manage_payments',
+    'manage_waitlist',
+    'manage_followups',
+    'manage_master_data',
+    'manage_users',
+    'manage_feature_flags',
+  ],
+  pemilik: ['decide_relief'],
+};
+
+export function canRolePerformAction(
+  role: UserRole | null | undefined,
+  action: ProtectedAction
+): boolean {
+  if (!role) return false;
+  return ROLE_PERMISSIONS[role]?.includes(action) ?? false;
 }

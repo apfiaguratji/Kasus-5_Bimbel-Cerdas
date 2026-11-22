@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Globe, LogOut, Menu, X } from 'lucide-react';
+import { Globe, Lock, LogOut, Menu, X } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext.tsx';
 import type { UserRole } from '../types.ts';
 
@@ -32,8 +32,6 @@ export function DashboardShell({
     authMode,
     currentUser,
     activeRole,
-    canSwitchPreviewRole,
-    switchPreviewRole,
     setView,
     logout,
   } = useAppData();
@@ -105,27 +103,15 @@ export function DashboardShell({
         })}
       </nav>
 
-      {canSwitchPreviewRole && (
-        <div className="px-4 py-3 border-t border-white/12 bg-[#06153b]">
-          <label
-            htmlFor="role-preview-select"
-            className="block text-[11px] font-semibold uppercase tracking-wider text-[#93c5fd] mb-1.5"
-          >
-            Uji Coba Aktor
-          </label>
-          <select
-            id="role-preview-select"
-            value={activeRole}
-            onChange={(e) => switchPreviewRole(e.target.value as UserRole)}
-            className="w-full rounded-xl bg-[#0e2a6e] border border-white/20 px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-[#60a5fa]"
-          >
-            <option value="orang_tua">Orang Tua</option>
-            <option value="tutor">Tutor</option>
-            <option value="admin">Admin</option>
-            <option value="pemilik">Pemilik</option>
-          </select>
+      <div className="px-4 py-3 border-t border-white/12 bg-[#06153b] space-y-1">
+        <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-[#93c5fd]">
+          <Lock className="w-3.5 h-3.5 shrink-0" />
+          <span>Hak Akses Terkunci</span>
         </div>
-      )}
+        <p className="text-[11px] text-[#cbd5f5]/85 leading-snug">
+          Sesi aktif hanya untuk peran <strong className="text-white">{ROLE_LABELS[activeRole]}</strong>. Keluar untuk berganti akun aktor lain.
+        </p>
+      </div>
 
       <div className="p-3 border-t border-white/12 space-y-1">
         <button

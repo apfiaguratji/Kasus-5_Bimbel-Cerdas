@@ -25,12 +25,14 @@ import {
 } from '../lib/firebase.ts';
 import {
   calculateSppInvoice,
+  canRolePerformAction,
   checkThreeConsecutiveAbsences,
   computeClassStatus,
   formatPeriode,
   generateReceiptNumber,
   MAX_CLASS_CAPACITY,
   MIN_CLASS_STUDENTS,
+  type ProtectedAction,
   REGISTRATION_FEE,
   SESSION_DURATION_MINUTES,
   TUTOR_HONOR_PER_SESSION,
@@ -112,8 +114,6 @@ interface AppDataContextValue {
   isLoggingIn: boolean;
   currentUser: UserAccount | null;
   activeRole: UserRole;
-  canSwitchPreviewRole: boolean;
-  switchPreviewRole: (role: UserRole) => void;
   loginWithGoogle: () => Promise<void>;
   loginAsDemo: (role: UserRole) => void;
   loginWithTestCredential: (
@@ -228,7 +228,6 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   const [authReady, setAuthReady] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
-  const [previewRole, setPreviewRole] = useState<UserRole>('orang_tua');
 
   const [usersList, setUsersList] = useState<UserAccount[]>(Object.values(DEMO_USERS));
   const [programs, setPrograms] = useState<Program[]>(SEED_PROGRAMS);
@@ -465,11 +464,11 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   const loadFirebaseWorkspace = useCallback(
     async (user: UserAccount) => {
       const isBootstrapOwner = isBootstrapTeamEmail(user.email);
-      const canManageAll = isBootstrapOwner || user.role === 'admin' || user.role === 'pemilik';
-      const canManageUsers = isBootstrapOwner || user.role === 'admin';
+      const canManageAll = user.role === 'admin' || user.role === 'pemilik';
+      const canManageUsers = user.role === 'admin';
       try {
         await loadPublicCatalog();
-        if (isBootstrapOwner) {
+        if (isBootstrapOwner && canManageAll) {
           await seedFirestoreIfEmpty();
         }
         if (canManageAll) {
@@ -765,9 +764,19 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
           });
           profile = { id: fbUser.uid, ...newProfile };
         }
+        if (!profile.statusAktif) {
+          await signOut(auth);
+          setAuthMode('none');
+          setCurrentUser(null);
+          addToast(
+            'error',
+            'Akun dinonaktifkan',
+            'Akun Anda sedang nonaktif. Hubungi Admin Bimbel Cerdas.'
+          );
+          return;
+        }
         setAuthMode('firebase');
         setCurrentUser(profile);
-        setPreviewRole(isBootstrap && profile.role === 'orang_tua' ? 'pemilik' : profile.role);
         await loadFirebaseWorkspace(profile);
         setView('dashboard');
       } catch (err) {
@@ -826,7 +835,6 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       setFeatureFlags(SEED_FEATURE_FLAGS);
       setAuthMode('demo');
       setCurrentUser(DEMO_USERS[role]);
-      setPreviewRole(role);
       setView('dashboard');
       const roleLabels: Record<UserRole, string> = {
         orang_tua: 'Orang Tua',
@@ -872,20 +880,25 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     addToast('info', 'Anda telah keluar', 'Sampai jumpa kembali di Bimbel Cerdas.');
   }, [addToast, authMode]);
 
-  const isBootstrapOwner =
-    authMode === 'firebase' && isBootstrapTeamEmail(currentUser?.email);
-  const canSwitchPreviewRole = authMode === 'demo' || isBootstrapOwner;
-  const activeRole = canSwitchPreviewRole ? previewRole : currentUser?.role || 'orang_tua';
+  const activeRole: UserRole = currentUser?.role || 'orang_tua';
 
-  const switchPreviewRole = useCallback(
-    (role: UserRole) => {
-      if (!canSwitchPreviewRole) return;
-      setPreviewRole(role);
-      if (authMode === 'demo') {
-        setCurrentUser(DEMO_USERS[role]);
+  const assertRoleAction = useCallback(
+    (action: ProtectedAction, actionLabel: string): boolean => {
+      if (!currentUser || !currentUser.statusAktif) {
+        addToast('error', 'Sesi tidak valid', 'Silakan masuk terlebih dahulu.');
+        return false;
       }
+      if (!canRolePerformAction(activeRole, action)) {
+        addToast(
+          'error',
+          'Akses ditolak',
+          `Peran ${activeRole} tidak memiliki izin untuk ${actionLabel}.`
+        );
+        return false;
+      }
+      return true;
     },
-    [authMode, canSwitchPreviewRole]
+    [activeRole, addToast, currentUser]
   );
 
   const isFeatureEnabled = useCallback(
@@ -974,6 +987,9 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
   const registerChild = useCallback(
     async (input: RegisterStudentInput) => {
+      if (!assertRoleAction('register_child', 'mendaftarkan siswa')) {
+        throw new Error('Akses ditolak: hanya portal Orang Tua yang dapat mendaftarkan anak.');
+      }
       if (!currentUser) throw new Error('Belum login.');
       const prog = programs.find((p) => p.id === input.idProgram);
       const cls = classes.find((c) => c.id === input.idKelas);
@@ -1132,6 +1148,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
   const markNotificationRead = useCallback(
     async (id: string) => {
+      if (!assertRoleAction('mark_notification_read', 'menandai notifikasi')) return;
       setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, sudahDibaca: true } : n)));
       if (authMode === 'firebase') {
         try {
@@ -1141,11 +1158,14 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         }
       }
     },
-    [authMode]
+    [assertRoleAction, authMode]
   );
 
   const submitReliefRequest = useCallback(
     async (input: { idTagihan: string; jenisPengajuan: ReliefType; alasan: string }) => {
+      if (!assertRoleAction('submit_relief', 'mengajukan keringanan SPP')) {
+        throw new Error('Akses ditolak: hanya portal Orang Tua yang dapat mengajukan keringanan.');
+      }
       const inv = invoices.find((i) => i.id === input.idTagihan);
       if (!inv) throw new Error('Tagihan tidak ditemukan.');
       const relId = makeId('rel');
@@ -1180,6 +1200,9 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
   const recordTutorSessionAndAttendance = useCallback(
     async (input: RecordAttendanceInput) => {
+      if (!assertRoleAction('record_tutor_attendance', 'mencatat absensi mengajar')) {
+        throw new Error('Akses ditolak: hanya portal Tutor yang dapat mencatat absensi sesi.');
+      }
       const sched = schedules.find((s) => s.id === input.idJadwal);
       if (!sched) throw new Error('Jadwal mengajar tidak ditemukan.');
 
@@ -1308,6 +1331,9 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
   const recordInvoicePayment = useCallback(
     async (idTagihan: string, metodeBayar: PaymentMethod): Promise<Receipt> => {
+      if (!assertRoleAction('manage_payments', 'mencatat pembayaran SPP')) {
+        throw new Error('Akses ditolak: hanya Admin yang dapat mencatat pembayaran.');
+      }
       const inv = invoices.find((i) => i.id === idTagihan);
       if (!inv) throw new Error('Tagihan tidak ditemukan.');
       const sis = students.find((s) => s.id === inv.idSiswa);
@@ -1377,6 +1403,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
   const markInvoiceOverdue = useCallback(
     async (idTagihan: string) => {
+      if (!assertRoleAction('manage_payments', 'mengubah status tunggakan')) return;
       setInvoices((prev) =>
         prev.map((i) => (i.id === idTagihan ? { ...i, statusTagihan: 'Tunggakan' } : i))
       );
@@ -1392,11 +1419,12 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       }
       addToast('info', 'Status diperbarui ke Tunggakan');
     },
-    [addToast, authMode]
+    [addToast, assertRoleAction, authMode]
   );
 
   const generateMonthlyInvoices = useCallback(
     async (bulan: number, tahun: number): Promise<number> => {
+      if (!assertRoleAction('manage_payments', 'menerbitkan tagihan bulanan')) return 0;
       const eligibleStudents = students.filter(
         (s) => s.statusSiswa === 'Aktif' || s.statusSiswa === 'Menunggu Kelas'
       );
@@ -1460,6 +1488,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
   const confirmRegistrationPayment = useCallback(
     async (idRegistrasi: string, metodeBayar: PaymentMethod): Promise<Receipt | null> => {
+      if (!assertRoleAction('manage_payments', 'mengonfirmasi biaya pendaftaran')) return null;
       const reg = registrations.find((r) => r.id === idRegistrasi);
       if (!reg) return null;
       const today = todayISO();
@@ -1534,6 +1563,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       studentId: string,
       updates: { namaSiswa: string; asalSekolah: string; idKelas: string; statusSiswa: StudentStatus }
     ) => {
+      if (!assertRoleAction('manage_master_data', 'memperbarui data siswa')) return;
       const sis = students.find((s) => s.id === studentId);
       const targetCls = classes.find((c) => c.id === updates.idKelas);
       if (!sis || !targetCls) return;
@@ -1633,6 +1663,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
   const promoteWaitlistStudent = useCallback(
     async (idWaitlist: string, targetClassId: string) => {
+      if (!assertRoleAction('manage_waitlist', 'menempatkan siswa daftar tunggu')) return;
       const wl = waitlists.find((w) => w.id === idWaitlist);
       const targetCls = classes.find((c) => c.id === targetClassId);
       const sis = students.find((s) => s.id === wl?.idSiswa);
@@ -1750,6 +1781,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
   const cancelWaitlist = useCallback(
     async (idWaitlist: string) => {
+      if (!assertRoleAction('manage_waitlist', 'membatalkan daftar tunggu')) return;
       const wl = waitlists.find((w) => w.id === idWaitlist);
       if (!wl) return;
       if (authMode === 'firebase') {
@@ -1781,11 +1813,12 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       );
       addToast('info', 'Antrean daftar tunggu dibatalkan', `${wl.namaSiswa} dikeluarkan dari antrean.`);
     },
-    [addToast, authMode, waitlists]
+    [addToast, assertRoleAction, authMode, waitlists]
   );
 
   const updateFollowupCall = useCallback(
     async (idFollowup: string, status: FollowupStatus, hasilPanggilan: string) => {
+      if (!assertRoleAction('manage_followups', 'mencatat hasil panggilan bolos')) return;
       const today = todayISO();
       const adminName = currentUser?.nama || 'Admin';
       setFollowups((prev) =>
@@ -1825,6 +1858,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       decision: Exclude<ReliefDecision, 'Menunggu'>,
       catatanPemilik: string
     ) => {
+      if (!assertRoleAction('decide_relief', 'memutuskan pengajuan keringanan')) return;
       const req = reliefRequests.find((r) => r.id === idRelief);
       if (!req) return;
       const today = todayISO();
@@ -1873,6 +1907,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
   const updateUserRole = useCallback(
     async (uid: string, role: UserRole, linkedTutorId?: string, statusAktif = true) => {
+      if (!assertRoleAction('manage_users', 'mengubah hak akses pengguna')) return;
       const nextTutorId = role === 'tutor' ? linkedTutorId || '' : '';
       if (authMode === 'firebase') {
         try {
@@ -1893,12 +1928,13 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       );
       addToast('success', 'Hak akses pengguna diperbarui');
     },
-    [addToast, authMode]
+    [addToast, assertRoleAction, authMode]
   );
 
   // Master CRUD
   const saveProgram = useCallback(
     async (item: Omit<Program, 'id'> & { id?: string }) => {
+      if (!assertRoleAction('manage_master_data', 'menyimpan program belajar')) return;
       const id = item.id || makeId('prog');
       const payload = {
         namaProgram: item.namaProgram,
@@ -1932,6 +1968,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
   const deleteProgram = useCallback(
     async (id: string) => {
+      if (!assertRoleAction('manage_master_data', 'menghapus program belajar')) return;
       if (authMode === 'firebase') {
         try {
           await deleteDoc(doc(db, 'programs', id));
@@ -1942,11 +1979,12 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       setPrograms((prev) => prev.filter((p) => p.id !== id));
       addToast('info', 'Program dihapus');
     },
-    [addToast, authMode]
+    [addToast, assertRoleAction, authMode]
   );
 
   const saveTutor = useCallback(
     async (item: Omit<Tutor, 'id'> & { id?: string }) => {
+      if (!assertRoleAction('manage_master_data', 'menyimpan data tutor')) return;
       const id = item.id || makeId('tutor');
       const payload = {
         namaTutor: item.namaTutor,
@@ -1975,11 +2013,12 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       );
       addToast('success', item.id ? 'Data tutor diperbarui' : 'Tutor ditambahkan');
     },
-    [addToast, authMode]
+    [addToast, assertRoleAction, authMode]
   );
 
   const deleteTutor = useCallback(
     async (id: string) => {
+      if (!assertRoleAction('manage_master_data', 'menghapus data tutor')) return;
       if (authMode === 'firebase') {
         try {
           await deleteDoc(doc(db, 'tutors', id));
@@ -1990,11 +2029,12 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       setTutors((prev) => prev.filter((t) => t.id !== id));
       addToast('info', 'Tutor dihapus');
     },
-    [addToast, authMode]
+    [addToast, assertRoleAction, authMode]
   );
 
   const saveClass = useCallback(
     async (item: Omit<ClassRoom, 'id'> & { id?: string }) => {
+      if (!assertRoleAction('manage_master_data', 'menyimpan data kelas')) return;
       const id = item.id || makeId('kelas');
       const payload = {
         idProgram: item.idProgram,
@@ -2024,11 +2064,12 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       );
       addToast('success', item.id ? 'Data kelas diperbarui' : 'Kelas ditambahkan');
     },
-    [addToast, authMode]
+    [addToast, assertRoleAction, authMode]
   );
 
   const deleteClass = useCallback(
     async (id: string) => {
+      if (!assertRoleAction('manage_master_data', 'menghapus kelas')) return;
       if (authMode === 'firebase') {
         try {
           await deleteDoc(doc(db, 'classes', id));
@@ -2039,11 +2080,12 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       setClasses((prev) => prev.filter((c) => c.id !== id));
       addToast('info', 'Kelas dihapus');
     },
-    [addToast, authMode]
+    [addToast, assertRoleAction, authMode]
   );
 
   const saveSchedule = useCallback(
     async (item: Omit<Schedule, 'id'> & { id?: string }) => {
+      if (!assertRoleAction('manage_master_data', 'menyimpan jadwal belajar')) return;
       const id = item.id || makeId('jad');
       const payload = {
         idKelas: item.idKelas,
@@ -2074,11 +2116,12 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       );
       addToast('success', item.id ? 'Jadwal diperbarui' : 'Jadwal ditambahkan');
     },
-    [addToast, authMode]
+    [addToast, assertRoleAction, authMode]
   );
 
   const deleteSchedule = useCallback(
     async (id: string) => {
+      if (!assertRoleAction('manage_master_data', 'menghapus jadwal belajar')) return;
       if (authMode === 'firebase') {
         try {
           await deleteDoc(doc(db, 'schedules', id));
@@ -2089,7 +2132,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       setSchedules((prev) => prev.filter((s) => s.id !== id));
       addToast('info', 'Jadwal dihapus');
     },
-    [addToast, authMode]
+    [addToast, assertRoleAction, authMode]
   );
 
   return (
@@ -2102,8 +2145,6 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         isLoggingIn,
         currentUser,
         activeRole,
-        canSwitchPreviewRole,
-        switchPreviewRole,
         loginWithGoogle,
         loginAsDemo,
         loginWithTestCredential,
