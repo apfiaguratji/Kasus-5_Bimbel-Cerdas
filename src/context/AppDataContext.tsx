@@ -27,6 +27,7 @@ import {
 import {
   auth,
   db,
+  DESIGNATED_ACTOR_PROFILES,
   googleProvider,
   handleFirestoreError,
   isBootstrapTeamEmail,
@@ -752,12 +753,32 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     async (fbUser: FirebaseUser) => {
       const userRef = doc(db, 'users', fbUser.uid);
       const snap = await getDoc(userRef);
+      const normalizedEmail = (fbUser.email || '').trim().toLowerCase();
+      const designated = DESIGNATED_ACTOR_PROFILES[normalizedEmail];
       let profile: UserAccount;
       if (snap.exists()) {
-        profile = {
+        const existingProfile = {
           id: snap.id,
           ...stripTimestamps<Omit<UserAccount, 'id'>>(snap.data()),
         };
+        if (designated && existingProfile.role !== designated.role) {
+          const nextTutorId =
+            designated.role === 'tutor'
+              ? designated.linkedTutorId || existingProfile.linkedTutorId || ''
+              : '';
+          await updateDoc(userRef, {
+            role: designated.role,
+            linkedTutorId: nextTutorId,
+            updatedAt: serverTimestamp(),
+          });
+          profile = {
+            ...existingProfile,
+            role: designated.role,
+            linkedTutorId: nextTutorId,
+          };
+        } else {
+          profile = existingProfile;
+        }
       } else {
         const initial = resolveInitialActorProfile(fbUser.email, fbUser.displayName);
         const newProfile = {

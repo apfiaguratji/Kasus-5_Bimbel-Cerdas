@@ -23,6 +23,14 @@ export const DESIGNATED_ACTOR_PROFILES: Record<
   string,
   { role: UserRole; nama: string; linkedTutorId?: string }
 > = {
+  's22319041@student.unklab.ac.id': { role: 'admin', nama: 'Admin Bimbel Cerdas' },
+  '12410503@student.unklab.ac.id': {
+    role: 'tutor',
+    nama: 'Tutor Bimbel Cerdas',
+    linkedTutorId: 'tutor-1',
+  },
+  '12410388@student.unklab.ac.id': { role: 'orang_tua', nama: 'Orang Tua Bimbel Cerdas' },
+  '12410384@student.unklab.ac.id': { role: 'pemilik', nama: 'Pemilik Bimbel Cerdas' },
   'tirsaadmin@gmail.com': { role: 'admin', nama: 'Tirsa (Admin)' },
   'lilisortu@gmail.com': { role: 'orang_tua', nama: 'Lilis (Orang Tua)' },
   'auroratutor@gmail.com': { role: 'tutor', nama: 'Aurora (Tutor)', linkedTutorId: 'tutor-1' },

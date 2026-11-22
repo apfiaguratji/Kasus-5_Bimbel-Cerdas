@@ -42,34 +42,38 @@ service cloud.firestore {
     function isBootstrappedAdmin() {
       return isVerifiedUser()
         && request.auth.token.email is string
-        && request.auth.token.email.lower() in [
-          '12410331@student.unklab.ac.id',
-          's22319041@student.unklab.ac.id',
-          '12410503@student.unklab.ac.id',
-          '12410384@student.unklab.ac.id',
-          '12410388@student.unklab.ac.id'
-        ]
+        && request.auth.token.email.lower() == '12410331@student.unklab.ac.id'
         && (!userExists() || currentUserRole() in ['admin', 'pemilik']);
     }
 
     function isDesignatedAdminEmail() {
       return isVerifiedUser()
         && request.auth.token.email is string
-        && request.auth.token.email.lower() == 'tirsaadmin@gmail.com'
+        && request.auth.token.email.lower() in [
+          's22319041@student.unklab.ac.id',
+          'tirsaadmin@gmail.com'
+        ]
         && (!userExists() || currentUserRole() == 'admin');
     }
 
     function isDesignatedPemilikEmail() {
       return isVerifiedUser()
         && request.auth.token.email is string
-        && request.auth.token.email.lower() == 'gracepemilik@gmail.com'
+        && request.auth.token.email.lower() in [
+          '12410331@student.unklab.ac.id',
+          '12410384@student.unklab.ac.id',
+          'gracepemilik@gmail.com'
+        ]
         && (!userExists() || currentUserRole() == 'pemilik');
     }
 
     function isDesignatedTutorEmail() {
       return isVerifiedUser()
         && request.auth.token.email is string
-        && request.auth.token.email.lower() == 'auroratutor@gmail.com'
+        && request.auth.token.email.lower() in [
+          '12410503@student.unklab.ac.id',
+          'auroratutor@gmail.com'
+        ]
         && (!userExists() || currentUserRole() == 'tutor');
     }
 
@@ -96,6 +100,19 @@ service cloud.firestore {
         isDesignatedTutorEmail() ||
         (userExists() && currentUserRole() == 'tutor')
       );
+    }
+
+    function isDesignatedSelfRoleSync(userId) {
+      return isVerifiedUser()
+        && isOwner(userId)
+        && request.auth.token.email is string
+        && incoming().diff(existing()).affectedKeys().hasOnly(['role', 'linkedTutorId', 'updatedAt'])
+        && (
+          (request.auth.token.email.lower() in ['s22319041@student.unklab.ac.id', 'tirsaadmin@gmail.com'] && incoming().role == 'admin') ||
+          (request.auth.token.email.lower() in ['12410331@student.unklab.ac.id', '12410384@student.unklab.ac.id', 'gracepemilik@gmail.com'] && incoming().role == 'pemilik') ||
+          (request.auth.token.email.lower() in ['12410503@student.unklab.ac.id', 'auroratutor@gmail.com'] && incoming().role == 'tutor') ||
+          (request.auth.token.email.lower() in ['12410388@student.unklab.ac.id', 'lilisortu@gmail.com'] && incoming().role == 'orang_tua')
+        );
     }
 
     function isStaff() {
@@ -425,6 +442,7 @@ service cloud.firestore {
         && incoming().updatedAt == request.time
         && (
           isAdmin() ||
+          isDesignatedSelfRoleSync(userId) ||
           (isOwner(userId) && incoming().role == existing().role && incoming().diff(existing()).affectedKeys().hasOnly(['nama', 'noTelepon', 'alamat', 'updatedAt']))
         );
       allow delete: if isValidId(userId) && isAdmin();
