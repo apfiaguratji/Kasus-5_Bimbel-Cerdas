@@ -1,0 +1,228 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 1060" width="1400" height="1060" font-family="'Plus Jakarta Sans', 'Segoe UI', Arial, sans-serif">
+  <defs>
+    <linearGradient id="headerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#071a48"/>
+      <stop offset="55%" stop-color="#0d2d78"/>
+      <stop offset="100%" stop-color="#1d4ed8"/>
+    </linearGradient>
+    <marker id="arrowBlue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#2563eb"/>
+    </marker>
+    <marker id="arrowAmber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#d97706"/>
+    </marker>
+    <marker id="arrowEmerald" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#059669"/>
+    </marker>
+    <marker id="arrowSlate" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#475569"/>
+    </marker>
+  </defs>
+
+  <!-- Canvas Background -->
+  <rect width="1400" height="1060" fill="#f4f8ff"/>
+
+  <!-- Header Banner -->
+  <rect x="24" y="20" width="1352" height="78" rx="14" fill="url(#headerGrad)"/>
+  <text x="48" y="53" fill="#ffffff" font-size="22" font-weight="700">Diagram Arsitektur Sistem — Bimbel Cerdas</text>
+  <text x="48" y="79" fill="#bfdbfe" font-size="13" font-weight="500">Hosting (Vercel &amp; Node.js)  •  Frontend (React 19 + Vite + Tailwind)  •  Backend (Express REST API)  •  Database (Firebase Auth &amp; Cloud Firestore)</text>
+  <rect x="1118" y="38" width="234" height="40" rx="8" fill="#ffffff" fill-opacity="0.14" stroke="#93c5fd" stroke-opacity="0.4"/>
+  <text x="1235" y="55" text-anchor="middle" fill="#dbeafe" font-size="11" font-weight="600">Project: gen-lang-client-0798980042</text>
+  <text x="1235" y="70" text-anchor="middle" fill="#ffffff" font-size="11" font-weight="700">Single-Role RBAC • Verified Auth</text>
+
+  <!-- ==================== 1. HOSTING & DEPLOYMENT ==================== -->
+  <rect x="24" y="114" width="1352" height="142" rx="14" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+  <rect x="24" y="114" width="1352" height="32" rx="14" fill="#eef2ff"/>
+  <rect x="24" y="132" width="1352" height="14" fill="#eef2ff"/>
+  <text x="44" y="135" fill="#1e3a8a" font-size="13" font-weight="700" letter-spacing="0.5">1. HOSTING &amp; DEPLOYMENT LAYER</text>
+
+  <!-- GitHub -->
+  <rect x="44" y="158" width="320" height="82" rx="10" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.2"/>
+  <text x="60" y="180" fill="#0f172a" font-size="13" font-weight="700">GitHub Repository (Source &amp; CI/CD)</text>
+  <text x="60" y="199" fill="#475569" font-size="11.5">apfiaguratji/Kasus-5_Bimbel-Cerdas</text>
+  <text x="60" y="218" fill="#64748b" font-size="11">Push ke main memicu build &amp; deploy otomatis</text>
+
+  <!-- Arrow GitHub -> Vercel -->
+  <line x1="364" y1="199" x2="416" y2="199" stroke="#475569" stroke-width="1.8" marker-end="url(#arrowSlate)"/>
+  <text x="390" y="191" text-anchor="middle" fill="#475569" font-size="10" font-weight="600">CI/CD</text>
+
+  <!-- Vercel -->
+  <rect x="424" y="158" width="510" height="82" rx="10" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.4"/>
+  <text x="442" y="180" fill="#1e3a8a" font-size="13" font-weight="700">Vercel Production Hosting (kasus-5-bimbel-cerdas.vercel.app)</text>
+  <text x="442" y="199" fill="#1e40af" font-size="11.5">• Static SPA: npm run build -&gt; dist/ (vercel.json rewrites)</text>
+  <text x="442" y="217" fill="#1e40af" font-size="11.5">• Static Docs: /docs/* (public/docs/)  •  Serverless API: /api/* (api/[...route].ts)</text>
+
+  <!-- Local / Node Runtime -->
+  <rect x="960" y="158" width="396" height="82" rx="10" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.2"/>
+  <text x="976" y="180" fill="#0f172a" font-size="13" font-weight="700">Node.js / Express Runtime (server.ts — Port 3000)</text>
+  <text x="976" y="199" fill="#475569" font-size="11.5">• Dev: vite.middlewares + /api + /docs</text>
+  <text x="976" y="217" fill="#475569" font-size="11.5">• Prod: dist/ SPA fallback + Express /api</text>
+
+  <!-- ==================== 2. FRONTEND LAYER ==================== -->
+  <rect x="24" y="280" width="1352" height="278" rx="14" fill="#ffffff" stroke="#93c5fd" stroke-width="1.6"/>
+  <rect x="24" y="280" width="1352" height="32" rx="14" fill="#dbeafe"/>
+  <rect x="24" y="298" width="1352" height="14" fill="#dbeafe"/>
+  <text x="44" y="301" fill="#1e3a8a" font-size="13" font-weight="700" letter-spacing="0.5">2. FRONTEND LAYER (React 19 + TypeScript + Vite 8 + Tailwind CSS v4)</text>
+
+  <!-- PublicSite -->
+  <rect x="44" y="326" width="278" height="110" rx="10" fill="#f8fbff" stroke="#60a5fa" stroke-width="1.2"/>
+  <text x="60" y="348" fill="#0b1e4b" font-size="13" font-weight="700">PublicSite.tsx</text>
+  <text x="60" y="366" fill="#334155" font-size="11">• Beranda &amp; Profil Lembaga</text>
+  <text x="60" y="383" fill="#334155" font-size="11">• Katalog Program SD/SMP/SMA/UTBK</text>
+  <text x="60" y="400" fill="#334155" font-size="11">• Jadwal &amp; Sisa Kuota Kelas</text>
+  <text x="60" y="417" fill="#334155" font-size="11">• Kalkulator Simulasi Biaya (Diskon 10%)</text>
+
+  <!-- LoginPage -->
+  <rect x="338" y="326" width="286" height="110" rx="10" fill="#f8fbff" stroke="#60a5fa" stroke-width="1.2"/>
+  <text x="354" y="348" fill="#0b1e4b" font-size="13" font-weight="700">LoginPage.tsx (Auth UI)</text>
+  <text x="354" y="366" fill="#334155" font-size="11">• Masuk &amp; Daftar Email + Kata Sandi</text>
+  <text x="354" y="383" fill="#334155" font-size="11">• Reset Kata Sandi via Email</text>
+  <text x="354" y="400" fill="#334155" font-size="11">• Layar Wajib Verifikasi Email</text>
+  <text x="354" y="417" fill="#334155" font-size="11">• Google Sign-In (OAuth Popup)</text>
+
+  <!-- 4 Portals -->
+  <rect x="640" y="326" width="716" height="110" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="1.4"/>
+  <text x="656" y="347" fill="#1e3a8a" font-size="13" font-weight="700">4 Portal Aktor Terisolasi — DashboardShell.tsx (Single-Role RBAC via src/App.tsx)</text>
+
+  <rect x="656" y="358" width="162" height="66" rx="8" fill="#ffffff" stroke="#93c5fd"/>
+  <text x="737" y="376" text-anchor="middle" fill="#0b1e4b" font-size="12" font-weight="700">ParentDashboard</text>
+  <text x="737" y="392" text-anchor="middle" fill="#2563eb" font-size="10.5" font-weight="600">role: orang_tua</text>
+  <text x="737" y="408" text-anchor="middle" fill="#475569" font-size="10">Daftar, SPP, Keringanan</text>
+
+  <rect x="830" y="358" width="162" height="66" rx="8" fill="#ffffff" stroke="#93c5fd"/>
+  <text x="911" y="376" text-anchor="middle" fill="#0b1e4b" font-size="12" font-weight="700">TutorDashboard</text>
+  <text x="911" y="392" text-anchor="middle" fill="#2563eb" font-size="10.5" font-weight="600">role: tutor</text>
+  <text x="911" y="408" text-anchor="middle" fill="#475569" font-size="10">Absensi, Pengganti, Honor</text>
+
+  <rect x="1004" y="358" width="162" height="66" rx="8" fill="#ffffff" stroke="#93c5fd"/>
+  <text x="1085" y="376" text-anchor="middle" fill="#0b1e4b" font-size="12" font-weight="700">AdminDashboard</text>
+  <text x="1085" y="392" text-anchor="middle" fill="#2563eb" font-size="10.5" font-weight="600">role: admin</text>
+  <text x="1085" y="408" text-anchor="middle" fill="#475569" font-size="10">Waitlist, Bayar, Follow-up</text>
+
+  <rect x="1178" y="358" width="162" height="66" rx="8" fill="#ffffff" stroke="#93c5fd"/>
+  <text x="1259" y="376" text-anchor="middle" fill="#0b1e4b" font-size="12" font-weight="700">OwnerDashboard</text>
+  <text x="1259" y="392" text-anchor="middle" fill="#2563eb" font-size="10.5" font-weight="600">role: pemilik</text>
+  <text x="1259" y="408" text-anchor="middle" fill="#475569" font-size="10">KPI 6B, Grafik, PDF/CSV</text>
+
+  <!-- State, Business Rules, PDF -->
+  <rect x="44" y="452" width="490" height="90" rx="10" fill="#f0f9ff" stroke="#38bdf8" stroke-width="1.2"/>
+  <text x="60" y="474" fill="#0c4a6e" font-size="13" font-weight="700">AppDataContext.tsx (State &amp; Sync Layer)</text>
+  <text x="60" y="493" fill="#0369a1" font-size="11">• Listener onAuthStateChanged &amp; Gate emailVerified == true</text>
+  <text x="60" y="510" fill="#0369a1" font-size="11">• Role-Scoped Firestore Queries &amp; Auto-Sync peran email QA</text>
+  <text x="60" y="527" fill="#0369a1" font-size="11">• Transaksi atomik writeBatch (daftar siswa, bayar SPP, promosi waitlist)</text>
+
+  <rect x="550" y="452" width="480" height="90" rx="10" fill="#f0f9ff" stroke="#38bdf8" stroke-width="1.2"/>
+  <text x="566" y="474" fill="#0c4a6e" font-size="13" font-weight="700">businessRules.ts &amp; firebase.ts (Domain Logic &amp; SDK Init)</text>
+  <text x="566" y="493" fill="#0369a1" font-size="11">• Tarif SPP (SD/SMP/SMA/UTBK), Biaya Daftar Rp100rb, Diskon ke-2+ (10%)</text>
+  <text x="566" y="510" fill="#0369a1" font-size="11">• Kuota 3–8 siswa, Deteksi 3x Absen Berturut, Honor Tutor Rp75.000/90m</text>
+  <text x="566" y="527" fill="#0369a1" font-size="11">• Pemetaan email -&gt; role (DESIGNATED_ACTOR_PROFILES) &amp; error auth ID</text>
+
+  <rect x="1046" y="452" width="310" height="90" rx="10" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.2"/>
+  <text x="1062" y="474" fill="#0f172a" font-size="13" font-weight="700">ReceiptModal.tsx &amp; pdfReport.ts</text>
+  <text x="1062" y="493" fill="#475569" font-size="11">• Kuitansi Pembayaran Resmi (KW-BC-...)</text>
+  <text x="1062" y="510" fill="#475569" font-size="11">• Laporan Keuangan Pemilik (jsPDF + CSV)</text>
+  <text x="1062" y="527" fill="#475569" font-size="11">• ToastContainer.tsx (Notifikasi UI)</text>
+
+  <!-- Arrows Hosting -> Frontend -->
+  <line x1="679" y1="240" x2="679" y2="278" stroke="#2563eb" stroke-width="1.8" marker-end="url(#arrowBlue)"/>
+  <line x1="1158" y1="240" x2="1158" y2="278" stroke="#475569" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrowSlate)"/>
+
+  <!-- ==================== 3. BACKEND REST API LAYER ==================== -->
+  <rect x="24" y="588" width="1352" height="148" rx="14" fill="#ffffff" stroke="#fbbf24" stroke-width="1.6"/>
+  <rect x="24" y="588" width="1352" height="32" rx="14" fill="#fef3c7"/>
+  <rect x="24" y="606" width="1352" height="14" fill="#fef3c7"/>
+  <text x="44" y="609" fill="#92400e" font-size="13" font-weight="700" letter-spacing="0.5">3. BACKEND REST API LAYER (Express 4 + Vercel Serverless — api/[...route].ts &amp; server/apiRouter.ts)</text>
+
+  <!-- Public Endpoints -->
+  <rect x="44" y="634" width="640" height="86" rx="10" fill="#fffbeb" stroke="#f59e0b" stroke-width="1.2"/>
+  <text x="60" y="655" fill="#78350f" font-size="13" font-weight="700">Endpoint Publik (/api/*)</text>
+  <text x="60" y="674" fill="#92400e" font-size="11">• GET /api/health &amp; GET /api/docs — Status server, Project ID, &amp; spesifikasi endpoint</text>
+  <text x="60" y="691" fill="#92400e" font-size="11">• GET /api/programs, /api/classes, /api/schedules — Katalog dari Firestore REST (fallback seed)</text>
+  <text x="60" y="708" fill="#92400e" font-size="11">• POST /api/simulasi-biaya &amp; POST /api/honor-rekap — Berbagi logika businessRules.ts</text>
+
+  <!-- Protected Endpoints -->
+  <rect x="702" y="634" width="654" height="86" rx="10" fill="#fffbeb" stroke="#f59e0b" stroke-width="1.2"/>
+  <text x="718" y="655" fill="#78350f" font-size="13" font-weight="700">Endpoint Terproteksi &amp; Proxy Firestore REST API</text>
+  <text x="718" y="674" fill="#92400e" font-size="11">• GET /api/collections/:name (14 koleksi terproteksi: students, invoices, payments, dll.)</text>
+  <text x="718" y="691" fill="#92400e" font-size="11">• Wajib header Authorization: Bearer &lt;Firebase_ID_Token&gt; (HTTP 401 jika tidak ada)</text>
+  <text x="718" y="708" fill="#92400e" font-size="11">• Meneruskan Bearer Token ke firestore.googleapis.com agar tetap divalidasi firestore.rules</text>
+
+  <!-- ==================== 4. DATABASE & SECURITY LAYER ==================== -->
+  <rect x="24" y="768" width="1352" height="268" rx="14" fill="#ffffff" stroke="#34d399" stroke-width="1.6"/>
+  <rect x="24" y="768" width="1352" height="32" rx="14" fill="#d1fae5"/>
+  <rect x="24" y="786" width="1352" height="14" fill="#d1fae5"/>
+  <text x="44" y="789" fill="#065f46" font-size="13" font-weight="700" letter-spacing="0.5">4. DATABASE, AUTHENTICATION &amp; SECURITY LAYER (Firebase BaaS)</text>
+
+  <!-- Firebase Auth -->
+  <rect x="44" y="814" width="320" height="204" rx="10" fill="#ecfdf5" stroke="#10b981" stroke-width="1.3"/>
+  <text x="60" y="838" fill="#064e3b" font-size="13" font-weight="700">Firebase Authentication</text>
+  <text x="60" y="860" fill="#065f46" font-size="11">Provider Aktif:</text>
+  <text x="60" y="878" fill="#047857" font-size="11">• Email &amp; Password</text>
+  <text x="60" y="895" fill="#047857" font-size="11">• Google Sign-In (OAuth 2.0)</text>
+  <text x="60" y="920" fill="#065f46" font-size="11">Kontrol Akses:</text>
+  <text x="60" y="938" fill="#047857" font-size="11">• Menerbitkan JWT ID Token</text>
+  <text x="60" y="955" fill="#047857" font-size="11">• Wajib email_verified == true</text>
+  <text x="60" y="972" fill="#047857" font-size="11">• Reset Sandi &amp; Kirim Ulang</text>
+  <text x="60" y="989" fill="#047857" font-size="11">  Tautan Verifikasi</text>
+
+  <!-- Firestore Security Rules -->
+  <rect x="382" y="814" width="376" height="204" rx="10" fill="#ecfdf5" stroke="#10b981" stroke-width="1.3"/>
+  <text x="398" y="838" fill="#064e3b" font-size="13" font-weight="700">Firestore Security Rules (firestore.rules)</text>
+  <text x="398" y="860" fill="#047857" font-size="11">• Default Deny (match /{document=**} -&gt; false)</text>
+  <text x="398" y="878" fill="#047857" font-size="11">• Wajib isVerifiedUser() pada seluruh data privat</text>
+  <text x="398" y="896" fill="#047857" font-size="11">• Single-Role RBAC Helpers:</text>
+  <text x="410" y="914" fill="#065f46" font-size="10.5">isAdmin(), isPemilik(), isTutor(), isOwner(uid)</text>
+  <text x="398" y="934" fill="#047857" font-size="11">• isDesignatedSelfRoleSync(uid):</text>
+  <text x="410" y="952" fill="#065f46" font-size="10.5">Sinkronisasi peran otomatis email QA terdaftar</text>
+  <text x="398" y="972" fill="#047857" font-size="11">• Validasi Skema Ketat (18 blueprint tipe &amp; field)</text>
+  <text x="398" y="990" fill="#047857" font-size="11">• Isolasi PII (/users/{uid} hanya owner &amp; admin)</text>
+
+  <!-- Cloud Firestore Collections -->
+  <rect x="776" y="814" width="580" height="204" rx="10" fill="#f0fdf4" stroke="#059669" stroke-width="1.4"/>
+  <text x="792" y="836" fill="#064e3b" font-size="13" font-weight="700">Cloud Firestore (DB: ai-studio-c15e7da5-4f88-4940-89f4-ab28fa592704)</text>
+
+  <rect x="792" y="848" width="268" height="74" rx="8" fill="#ffffff" stroke="#a7f3d0"/>
+  <text x="804" y="866" fill="#065f46" font-size="11.5" font-weight="700">Master &amp; Katalog (4 Koleksi)</text>
+  <text x="804" y="884" fill="#334155" font-size="10.5">programs • classes • schedules</text>
+  <text x="804" y="901" fill="#334155" font-size="10.5">tutors</text>
+
+  <rect x="1072" y="848" width="268" height="74" rx="8" fill="#ffffff" stroke="#a7f3d0"/>
+  <text x="1084" y="866" fill="#065f46" font-size="11.5" font-weight="700">Akun &amp; Konfigurasi (3 Koleksi)</text>
+  <text x="1084" y="884" fill="#334155" font-size="10.5">users • admins • feature_flags</text>
+  <text x="1084" y="901" fill="#64748b" font-size="10">(RBAC + 3 beta flags Admin)</text>
+
+  <rect x="792" y="928" width="268" height="82" rx="8" fill="#ffffff" stroke="#a7f3d0"/>
+  <text x="804" y="947" fill="#065f46" font-size="11.5" font-weight="700">Akademik &amp; Presensi (7 Koleksi)</text>
+  <text x="804" y="965" fill="#334155" font-size="10.5">students • registrations • waitlists</text>
+  <text x="804" y="981" fill="#334155" font-size="10.5">student_attendance • tutor_attendance</text>
+  <text x="804" y="997" fill="#334155" font-size="10.5">followups • notifications</text>
+
+  <rect x="1072" y="928" width="268" height="82" rx="8" fill="#ffffff" stroke="#a7f3d0"/>
+  <text x="1084" y="947" fill="#065f46" font-size="11.5" font-weight="700">Keuangan &amp; Keringanan (4 Koleksi)</text>
+  <text x="1084" y="965" fill="#334155" font-size="10.5">invoices • payments • receipts</text>
+  <text x="1084" y="981" fill="#334155" font-size="10.5">relief_requests</text>
+
+  <!-- ==================== CROSS-LAYER CONNECTIONS ==================== -->
+  <!-- LoginPage -> Firebase Auth -->
+  <path d="M 480 436 L 480 568 L 195 568 L 195 812" fill="none" stroke="#059669" stroke-width="1.8" marker-end="url(#arrowEmerald)"/>
+  <rect x="122" y="556" width="160" height="20" rx="4" fill="#ecfdf5" stroke="#6ee7b7"/>
+  <text x="202" y="570" text-anchor="middle" fill="#065f46" font-size="10" font-weight="700">Login / Verifikasi (Auth SDK)</text>
+
+  <!-- AppDataContext -> Firestore Security Rules (Direct SDK) -->
+  <path d="M 280 542 L 280 752 L 540 752 L 540 812" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrowBlue)"/>
+  <rect x="315" y="741" width="198" height="20" rx="4" fill="#eff6ff" stroke="#93c5fd"/>
+  <text x="414" y="755" text-anchor="middle" fill="#1e40af" font-size="10" font-weight="700">Firebase SDK + JWT ID Token</text>
+
+  <!-- Frontend -> Backend API -->
+  <line x1="790" y1="542" x2="790" y2="586" stroke="#d97706" stroke-width="1.8" stroke-dasharray="5 3" marker-end="url(#arrowAmber)"/>
+  <text x="854" y="572" fill="#92400e" font-size="10" font-weight="600">REST API (/api/*)</text>
+
+  <!-- Backend API -> Firestore Rules (REST) -->
+  <line x1="940" y1="720" x2="940" y2="766" stroke="#d97706" stroke-width="1.8" marker-end="url(#arrowAmber)"/>
+  <rect x="832" y="738" width="218" height="20" rx="4" fill="#fffbeb" stroke="#fcd34d"/>
+  <text x="941" y="752" text-anchor="middle" fill="#92400e" font-size="10" font-weight="700">Firestore REST + Bearer ID Token</text>
+
+  <!-- Auth -> Rules -> Firestore -->
+  <line x1="364" y1="916" x2="380" y2="916" stroke="#059669" stroke-width="1.8" marker-end="url(#arrowEmerald)"/>
+  <line x1="758" y1="916" x2="774" y2="916" stroke="#059669" stroke-width="1.8" marker-end="url(#arrowEmerald)"/>
+</svg>

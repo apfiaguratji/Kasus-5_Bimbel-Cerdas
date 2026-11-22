@@ -90,18 +90,29 @@ async function fetchFirestoreCollection<T>(
   const dbId = cfg.firestoreDatabaseId || '(default)';
   const baseUrl = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(
     cfg.projectId
-  )}/databases/${encodeURIComponent(dbId)}/documents/${encodeURIComponent(collectionName)}`;
+  )}/databases/${encodeURIComponent(dbId)}/documents:runQuery`;
   const url =
     !bearerToken && cfg.apiKey
-      ? `${baseUrl}?pageSize=100&key=${encodeURIComponent(cfg.apiKey)}`
-      : `${baseUrl}?pageSize=100`;
+      ? `${baseUrl}?key=${encodeURIComponent(cfg.apiKey)}`
+      : baseUrl;
 
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
   if (bearerToken) {
     headers.Authorization = bearerToken;
   }
 
-  const res = await fetch(url, { headers });
+  const res = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      structuredQuery: {
+        from: [{ collectionId: collectionName }],
+        limit: 100,
+      },
+    }),
+  });
   if (!res.ok) {
     if (bearerToken) {
       const errText = await res.text();
@@ -110,8 +121,8 @@ async function fetchFirestoreCollection<T>(
     return null;
   }
 
-  const json = (await res.json()) as { documents?: FirestoreRestDocument[] };
-  const docs = json.documents || [];
+  const rows = (await res.json()) as Array<{ document?: FirestoreRestDocument }>;
+  const docs = rows.map((r) => r.document).filter((d): d is FirestoreRestDocument => Boolean(d));
   return docs.map((d) => {
     const segments = d.name.split('/');
     const id = segments[segments.length - 1] || '';
