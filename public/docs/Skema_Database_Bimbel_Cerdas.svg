@@ -1,0 +1,320 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1200" width="1440" height="1200" font-family="'Plus Jakarta Sans', 'Segoe UI', Arial, sans-serif">
+  <defs>
+    <linearGradient id="dbHeaderGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#064e3b"/>
+      <stop offset="50%" stop-color="#047857"/>
+      <stop offset="100%" stop-color="#0f766e"/>
+    </linearGradient>
+    <marker id="relBlue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#2563eb"/>
+    </marker>
+    <marker id="relEmerald" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#059669"/>
+    </marker>
+    <marker id="relAmber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#d97706"/>
+    </marker>
+  </defs>
+
+  <!-- Canvas -->
+  <rect width="1440" height="1200" fill="#f4f8ff"/>
+
+  <!-- Header -->
+  <rect x="24" y="20" width="1392" height="78" rx="14" fill="url(#dbHeaderGrad)"/>
+  <text x="48" y="53" fill="#ffffff" font-size="22" font-weight="700">Skema Database &amp; ERD — Cloud Firestore Bimbel Cerdas</text>
+  <text x="48" y="79" fill="#d1fae5" font-size="13" font-weight="500">Database ID: ai-studio-c15e7da5-4f88-4940-89f4-ab28fa592704  •  18 Koleksi Operasional + 1 Probe (test/connection)</text>
+  <rect x="1146" y="38" width="246" height="40" rx="8" fill="#ffffff" fill-opacity="0.16" stroke="#a7f3d0" stroke-opacity="0.45"/>
+  <text x="1269" y="55" text-anchor="middle" fill="#ecfdf5" font-size="11" font-weight="600">Validasi: firebase-blueprint.json</text>
+  <text x="1269" y="70" text-anchor="middle" fill="#ffffff" font-size="11" font-weight="700">Security: firestore.rules (Verified)</text>
+
+  <!-- ==================== ZONE 1: AKUN, RBAC & KONFIGURASI ==================== -->
+  <rect x="24" y="114" width="440" height="330" rx="14" fill="#ffffff" stroke="#a5b4fc" stroke-width="1.5"/>
+  <rect x="24" y="114" width="440" height="32" rx="14" fill="#e0e7ff"/>
+  <rect x="24" y="132" width="440" height="14" fill="#e0e7ff"/>
+  <text x="42" y="135" fill="#1e1b4b" font-size="12.5" font-weight="700" letter-spacing="0.4">A. AKUN, RBAC &amp; KONFIGURASI (3 KOLEKSI)</text>
+
+  <!-- users -->
+  <rect x="40" y="160" width="408" height="136" rx="10" fill="#f8fafc" stroke="#6366f1" stroke-width="1.3"/>
+  <rect x="40" y="160" width="408" height="26" rx="10" fill="#6366f1"/>
+  <rect x="40" y="174" width="408" height="12" fill="#6366f1"/>
+  <text x="54" y="178" fill="#ffffff" font-size="12" font-weight="700">users / {userId}</text>
+  <text x="434" y="178" text-anchor="end" fill="#e0e7ff" font-size="10.5">PII Terisolasi (Owner/Admin)</text>
+  <text x="54" y="203" fill="#0f172a" font-size="11"><tspan font-weight="700" fill="#4338ca">PK</tspan>  uid : string (== auth.uid)</text>
+  <text x="54" y="220" fill="#334155" font-size="11">nama, email, noTelepon?, alamat? : string</text>
+  <text x="54" y="237" fill="#334155" font-size="11">role : enum('orang_tua' | 'tutor' | 'admin' | 'pemilik')</text>
+  <text x="54" y="254" fill="#334155" font-size="11"><tspan font-weight="700" fill="#0369a1">FK</tspan>  linkedTutorId? -&gt; tutors  |  statusAktif : bool</text>
+  <text x="54" y="271" fill="#64748b" font-size="10.5">createdAt, updatedAt : timestamp (serverTimestamp)</text>
+
+  <!-- admins & feature_flags -->
+  <rect x="40" y="308" width="188" height="120" rx="10" fill="#f8fafc" stroke="#818cf8" stroke-width="1.2"/>
+  <rect x="40" y="308" width="188" height="25" rx="10" fill="#4f46e5"/>
+  <rect x="40" y="321" width="188" height="12" fill="#4f46e5"/>
+  <text x="52" y="325" fill="#ffffff" font-size="11.5" font-weight="700">admins / {userId}</text>
+  <text x="52" y="350" fill="#0f172a" font-size="11"><tspan font-weight="700" fill="#4338ca">PK</tspan>  userId (auth.uid)</text>
+  <text x="52" y="368" fill="#475569" font-size="10.5">Registry hak admin</text>
+  <text x="52" y="386" fill="#475569" font-size="10.5">Akses: Admin only</text>
+  <text x="52" y="404" fill="#64748b" font-size="10">(+ test/connection probe)</text>
+
+  <rect x="240" y="308" width="208" height="120" rx="10" fill="#f8fafc" stroke="#818cf8" stroke-width="1.2"/>
+  <rect x="240" y="308" width="208" height="25" rx="10" fill="#4f46e5"/>
+  <rect x="240" y="321" width="208" height="12" fill="#4f46e5"/>
+  <text x="252" y="325" fill="#ffffff" font-size="11.5" font-weight="700">feature_flags / {flagId}</text>
+  <text x="252" y="350" fill="#0f172a" font-size="11"><tspan font-weight="700" fill="#4338ca">PK</tspan>  key (betaAnalytics...)</text>
+  <text x="252" y="367" fill="#334155" font-size="10.5">label, description : string</text>
+  <text x="252" y="384" fill="#334155" font-size="10.5">targetRole : 'admin'</text>
+  <text x="252" y="401" fill="#334155" font-size="10.5">enabled : bool | updatedBy?</text>
+  <text x="252" y="418" fill="#64748b" font-size="10">createdAt, updatedAt</text>
+
+  <!-- ==================== ZONE 2: MASTER & KATALOG ==================== -->
+  <rect x="488" y="114" width="928" height="330" rx="14" fill="#ffffff" stroke="#93c5fd" stroke-width="1.5"/>
+  <rect x="488" y="114" width="928" height="32" rx="14" fill="#dbeafe"/>
+  <rect x="488" y="132" width="928" height="14" fill="#dbeafe"/>
+  <text x="506" y="135" fill="#1e3a8a" font-size="12.5" font-weight="700" letter-spacing="0.4">B. MASTER &amp; KATALOG PEMBELAJARAN (4 KOLEKSI)</text>
+
+  <!-- programs -->
+  <rect x="504" y="160" width="218" height="268" rx="10" fill="#f8fbff" stroke="#2563eb" stroke-width="1.3"/>
+  <rect x="504" y="160" width="218" height="26" rx="10" fill="#1d4ed8"/>
+  <rect x="504" y="174" width="218" height="12" fill="#1d4ed8"/>
+  <text x="516" y="178" fill="#ffffff" font-size="12" font-weight="700">programs / {programId}</text>
+  <text x="516" y="204" fill="#0f172a" font-size="11"><tspan font-weight="700" fill="#1d4ed8">PK</tspan>  programId</text>
+  <text x="516" y="222" fill="#334155" font-size="11">namaProgram : string</text>
+  <text x="516" y="240" fill="#334155" font-size="11">jenjang : SD|SMP|SMA|UTBK</text>
+  <text x="516" y="258" fill="#334155" font-size="11">biayaSpp : number</text>
+  <text x="516" y="276" fill="#334155" font-size="11">biayaPendaftaran : number</text>
+  <text x="516" y="294" fill="#334155" font-size="11">frekuensiMingguan : 1..7</text>
+  <text x="516" y="312" fill="#334155" font-size="11">durasiMenit : 30..240</text>
+  <text x="516" y="330" fill="#334155" font-size="11">deskripsi : string (&lt;=500)</text>
+  <text x="516" y="352" fill="#0369a1" font-size="10.5" font-weight="600">Baca: Publik | Tulis: Admin</text>
+  <text x="516" y="414" fill="#64748b" font-size="10">createdAt, updatedAt</text>
+
+  <!-- classes -->
+  <rect x="736" y="160" width="222" height="268" rx="10" fill="#f8fbff" stroke="#2563eb" stroke-width="1.3"/>
+  <rect x="736" y="160" width="222" height="26" rx="10" fill="#1d4ed8"/>
+  <rect x="736" y="174" width="222" height="12" fill="#1d4ed8"/>
+  <text x="748" y="178" fill="#ffffff" font-size="12" font-weight="700">classes / {classId}</text>
+  <text x="748" y="204" fill="#0f172a" font-size="11"><tspan font-weight="700" fill="#1d4ed8">PK</tspan>  classId</text>
+  <text x="748" y="222" fill="#334155" font-size="11"><tspan font-weight="700" fill="#0369a1">FK</tspan>  idProgram -&gt; programs</text>
+  <text x="748" y="240" fill="#334155" font-size="11">namaProgram, jenjang</text>
+  <text x="748" y="258" fill="#334155" font-size="11">namaKelas : string</text>
+  <text x="748" y="276" fill="#334155" font-size="11">kapasitasMaksimal : 1..20 (8)</text>
+  <text x="748" y="294" fill="#334155" font-size="11">jumlahMinimal : 1..10 (3)</text>
+  <text x="748" y="312" fill="#334155" font-size="11">jumlahTerisi : 0..20</text>
+  <text x="748" y="330" fill="#334155" font-size="11">statusKelas : Menunggu Min |</text>
+  <text x="748" y="346" fill="#334155" font-size="11">  Aktif | Penuh | Tidak Aktif</text>
+  <text x="748" y="368" fill="#0369a1" font-size="10.5" font-weight="600">Baca: Publik | Tulis: Admin/+1</text>
+  <text x="748" y="414" fill="#64748b" font-size="10">createdAt, updatedAt</text>
+
+  <!-- schedules -->
+  <rect x="972" y="160" width="214" height="268" rx="10" fill="#f8fbff" stroke="#2563eb" stroke-width="1.3"/>
+  <rect x="972" y="160" width="214" height="26" rx="10" fill="#1d4ed8"/>
+  <rect x="972" y="174" width="214" height="12" fill="#1d4ed8"/>
+  <text x="984" y="178" fill="#ffffff" font-size="12" font-weight="700">schedules / {scheduleId}</text>
+  <text x="984" y="204" fill="#0f172a" font-size="11"><tspan font-weight="700" fill="#1d4ed8">PK</tspan>  scheduleId</text>
+  <text x="984" y="222" fill="#334155" font-size="11"><tspan font-weight="700" fill="#0369a1">FK</tspan>  idKelas -&gt; classes</text>
+  <text x="984" y="240" fill="#334155" font-size="11"><tspan font-weight="700" fill="#0369a1">FK</tspan>  idTutor -&gt; tutors</text>
+  <text x="984" y="258" fill="#334155" font-size="11">namaKelas, namaTutor</text>
+  <text x="984" y="276" fill="#334155" font-size="11">hari : Senin..Minggu</text>
+  <text x="984" y="294" fill="#334155" font-size="11">jamMulai, jamSelesai</text>
+  <text x="984" y="312" fill="#334155" font-size="11">durasiMenit : 30..240 (90)</text>
+  <text x="984" y="330" fill="#334155" font-size="11">ruangan? : string</text>
+  <text x="984" y="352" fill="#0369a1" font-size="10.5" font-weight="600">Baca: Publik | Tulis: Admin</text>
+  <text x="984" y="414" fill="#64748b" font-size="10">createdAt, updatedAt</text>
+
+  <!-- tutors -->
+  <rect x="1200" y="160" width="200" height="268" rx="10" fill="#f8fbff" stroke="#2563eb" stroke-width="1.3"/>
+  <rect x="1200" y="160" width="200" height="26" rx="10" fill="#1d4ed8"/>
+  <rect x="1200" y="174" width="200" height="12" fill="#1d4ed8"/>
+  <text x="1212" y="178" fill="#ffffff" font-size="12" font-weight="700">tutors / {tutorId}</text>
+  <text x="1212" y="204" fill="#0f172a" font-size="11"><tspan font-weight="700" fill="#1d4ed8">PK</tspan>  tutorId</text>
+  <text x="1212" y="222" fill="#334155" font-size="11"><tspan font-weight="700" fill="#0369a1">FK</tspan>  uid? -&gt; users</text>
+  <text x="1212" y="240" fill="#334155" font-size="11">namaTutor : string</text>
+  <text x="1212" y="258" fill="#334155" font-size="11">email, noTelepon</text>
+  <text x="1212" y="276" fill="#334155" font-size="11">alamat? : string</text>
+  <text x="1212" y="294" fill="#334155" font-size="11">bidangKeahlian : string</text>
+  <text x="1212" y="312" fill="#334155" font-size="11">statusAktif : boolean</text>
+  <text x="1212" y="352" fill="#0369a1" font-size="10.5" font-weight="600">Baca: Staff | Tulis: Admin</text>
+  <text x="1212" y="414" fill="#64748b" font-size="10">createdAt, updatedAt</text>
+
+  <!-- ==================== ZONE 3: AKADEMIK, PENDAFTARAN & PRESENSI ==================== -->
+  <rect x="24" y="468" width="908" height="670" rx="14" fill="#ffffff" stroke="#6ee7b7" stroke-width="1.5"/>
+  <rect x="24" y="468" width="908" height="32" rx="14" fill="#d1fae5"/>
+  <rect x="24" y="486" width="908" height="14" fill="#d1fae5"/>
+  <text x="42" y="489" fill="#064e3b" font-size="12.5" font-weight="700" letter-spacing="0.4">C. AKADEMIK, PENDAFTARAN &amp; PRESENSI (7 KOLEKSI)</text>
+
+  <!-- students -->
+  <rect x="40" y="514" width="284" height="236" rx="10" fill="#f0fdf4" stroke="#10b981" stroke-width="1.3"/>
+  <rect x="40" y="514" width="284" height="26" rx="10" fill="#059669"/>
+  <rect x="40" y="528" width="284" height="12" fill="#059669"/>
+  <text x="52" y="532" fill="#ffffff" font-size="12" font-weight="700">students / {studentId}</text>
+  <text x="52" y="556" fill="#0f172a" font-size="11"><tspan font-weight="700" fill="#047857">PK</tspan>  studentId</text>
+  <text x="52" y="573" fill="#334155" font-size="11"><tspan font-weight="700" fill="#0369a1">FK</tspan>  parentUid -&gt; users</text>
+  <text x="52" y="590" fill="#334155" font-size="11"><tspan font-weight="700" fill="#0369a1">FK</tspan>  idProgram -&gt; programs</text>
+  <text x="52" y="607" fill="#334155" font-size="11"><tspan font-weight="700" fill="#0369a1">FK</tspan>  idKelas -&gt; classes</text>
+  <text x="52" y="624" fill="#334155" font-size="11">parentName, parentPhone?</text>
+  <text x="52" y="641" fill="#334155" font-size="11">namaSiswa, tanggalLahir, jenisKelamin (L|P)</text>
+  <text x="52" y="658" fill="#334155" font-size="11">asalSekolah, jenjang, namaProgram, namaKelas</text>
+  <text x="52" y="675" fill="#334155" font-size="11">urutanAnak : 1..20 (Diskon anak ke-2+)</text>
+  <text x="52" y="692" fill="#334155" font-size="11">statusSiswa : Aktif | Menunggu Kelas | Waitlist</text>
+  <text x="52" y="736" fill="#64748b" font-size="10">createdAt, updatedAt</text>
+
+  <!-- registrations -->
+  <rect x="338" y="514" width="284" height="236" rx="10" fill="#f0fdf4" stroke="#10b981" stroke-width="1.3"/>
+  <rect x="338" y="514" width="284" height="26" rx="10" fill="#059669"/>
+  <rect x="338" y="528" width="284" height="12" fill="#059669"/>
+  <text x="350" y="532" fill="#ffffff" font-size="12" font-weight="700">registrations / {regId}</text>
+  <text x="350" y="556" fill="#0f172a" font-size="11"><tspan font-weight="700" fill="#047857">PK</tspan>  regId</text>
+  <text x="350" y="573" fill="#334155" font-size="11"><tspan font-weight="700" fill="#0369a1">FK</tspan>  parentUid -&gt; users</text>
+  <text x="350" y="590" fill="#334155" font-size="11"><tspan font-weight="700" fill="#0369a1">FK</tspan>  idSiswa -&gt; students</text>
+  <text x="350" y="607" fill="#334155" font-size="11"><tspan font-weight="700" fill="#0369a1">FK</tspan>  idProgram, idKelas</text>
+  <text x="350" y="624" fill="#334155" font-size="11">parentName, namaSiswa, namaProgram</text>
+  <text x="350" y="641" fill="#334155" font-size="11">biayaPendaftaran : 100000 (fixed)</text>
+  <text x="350" y="658" fill="#334155" font-size="11">statusBayarDaftar : Belum Bayar | Lunas</text>
+  <text x="350" y="675" fill="#334155" font-size="11">statusPendaftaran : Aktif | Menunggu |</text>
+  <text x="350" y="692" fill="#334155" font-size="11">  Daftar Tunggu | Ditolak</text>
+  <text x="350" y="709" fill="#334155" font-size="11">tanggalDaftar : string</text>
+  <text x="350" y="736" fill="#64748b" font-size="10">createdAt, updatedAt</text>
+
+  <!-- waitlists -->
+  <rect x="636" y="514" width="280" height="236" rx="10" fill="#f0fdf4" stroke="#10b981" stroke-width="1.3"/>
+  <rect x="636" y="514" width="280" height="26" rx="10" fill="#059669"/>
+  <rect x="636" y="528" width="280" height="12" fill="#059669"/>
+  <text x="648" y="532" fill="#ffffff" font-size="12" font-weight="700">waitlists / {waitlistId}</text>
+  <text x="648" y="556" fill="#0f172a" font-size="11"><tspan font-weight="700" fill="#047857">PK</tspan>  waitlistId</text>
+  <text x="648" y="573" fill="#334155" font-size="11"><tspan font-weight="700" fill="#0369a1">FK</tspan>  parentUid -&gt; users</text>
+  <text x="648" y="590" fill="#334155" font-size="11"><tspan font-weight="700" fill="#0369a1">FK</tspan>  idSiswa -&gt; students</text>
+  <text x="648" y="607" fill="#334155" font-size="11"><tspan font-weight="700" fill="#0369a1">FK</tspan>  idProgram, idKelas</text>
+  <text x="648" y="624" fill="#334155" font-size="11">namaSiswa, namaKelas</text>
+  <text x="648" y="641" fill="#334155" font-size="11">urutanAntrean : number (&gt;= 1)</text>
+  <text x="648" y="658" fill="#334155" font-size="11">statusAntrean : Menunggu |</text>
+  <text x="648" y="675" fill="#334155" font-size="11">  Ditempatkan | Dibatalkan</text>
+  <text x="648" y="692" fill="#334155" font-size="11">tanggalMasuk : string</text>
+  <text x="648" y="736" fill="#64748b" font-size="10">createdAt, updatedAt</text>
+
+  <!-- student_attendance -->
+  <rect x="40" y="766" width="428" height="170" rx="10" fill="#f0fdf4" stroke="#10b981" stroke-width="1.3"/>
+  <rect x="40" y="766" width="428" height="26" rx="10" fill="#059669"/>
+  <rect x="40" y="780" width="428" height="12" fill="#059669"/>
+  <text x="52" y="784" fill="#ffffff" font-size="12" font-weight="700">student_attendance / {attendanceId}</text>
+  <text x="52" y="809" fill="#0f172a" font-size="11"><tspan font-weight="700" fill="#047857">PK</tspan>  attendanceId</text>
+  <text x="52" y="826" fill="#334155" font-size="11"><tspan font-weight="700" fill="#0369a1">FK</tspan>  parentUid, idJadwal, idKelas, idTutor, idSiswa</text>
+  <text x="52" y="843" fill="#334155" font-size="11">namaKelas, namaSiswa, tanggal : string</text>
+  <text x="52" y="860" fill="#334155" font-size="11">statusKehadiran : enum('Hadir' | 'Tidak Hadir')</text>
+  <text x="52" y="877" fill="#334155" font-size="11">catatan? : string (&lt;=250)</text>
+  <text x="52" y="896" fill="#047857" font-size="10.5" font-weight="600">3x Tidak Hadir berturut -&gt; trigger followups &amp; notifications</text>
+  <text x="52" y="922" fill="#64748b" font-size="10">createdAt : timestamp</text>
+
+  <!-- tutor_attendance -->
+  <rect x="484" y="766" width="432" height="170" rx="10" fill="#f0fdf4" stroke="#10b981" stroke-width="1.3"/>
+  <rect x="484" y="766" width="432" height="26" rx="10" fill="#059669"/>
+  <rect x="484" y="780" width="432" height="12" fill="#059669"/>
+  <text x="496" y="784" fill="#ffffff" font-size="12" font-weight="700">tutor_attendance / {tutorAttendanceId}</text>
+  <text x="496" y="809" fill="#0f172a" font-size="11"><tspan font-weight="700" fill="#047857">PK</tspan>  tutorAttendanceId</text>
+  <text x="496" y="826" fill="#334155" font-size="11"><tspan font-weight="700" fill="#0369a1">FK</tspan>  idJadwal, idKelas, idTutorAsli, idTutorMengajar</text>
+  <text x="496" y="843" fill="#334155" font-size="11">namaKelas, namaTutorMengajar, tanggal : string</text>
+  <text x="496" y="860" fill="#334155" font-size="11">isPengganti : bool  |  statusHadir : bool</text>
+  <text x="496" y="877" fill="#334155" font-size="11">durasiMenit : 90 (fixed)  |  honorSesi : 75000 | 0</text>
+  <text x="496" y="896" fill="#047857" font-size="10.5" font-weight="600">Honor dialihkan ke idTutorMengajar jika digantikan</text>
+  <text x="496" y="922" fill="#64748b" font-size="10">createdAt : timestamp</text>
+
+  <!-- followups -->
+  <rect x="40" y="950" width="428" height="172" rx="10" fill="#f0fdf4" stroke="#10b981" stroke-width="1.3"/>
+  <rect x="40" y="950" width="428" height="26" rx="10" fill="#059669"/>
+  <rect x="40" y="964" width="428" height="12" fill="#059669"/>
+  <text x="52" y="968" fill="#ffffff" font-size="12" font-weight="700">followups / {followupId}</text>
+  <text x="52" y="993" fill="#0f172a" font-size="11"><tspan font-weight="700" fill="#047857">PK</tspan>  followupId</text>
+  <text x="52" y="1010" fill="#334155" font-size="11"><tspan font-weight="700" fill="#0369a1">FK</tspan>  parentUid -&gt; users  |  idSiswa -&gt; students</text>
+  <text x="52" y="1027" fill="#334155" font-size="11">namaSiswa, namaParent, noTeleponParent</text>
+  <text x="52" y="1044" fill="#334155" font-size="11">jumlahAbsenBeruntun : &gt;=3  |  tanggalPemicu</text>
+  <text x="52" y="1061" fill="#334155" font-size="11">statusTindakLanjut : Menunggu Telepon | Dihubungi | Selesai</text>
+  <text x="52" y="1078" fill="#334155" font-size="11">hasilPanggilan?, ditindakOleh?, tanggalTindakLanjut?</text>
+  <text x="52" y="1108" fill="#64748b" font-size="10">createdAt, updatedAt</text>
+
+  <!-- notifications -->
+  <rect x="484" y="950" width="432" height="172" rx="10" fill="#f0fdf4" stroke="#10b981" stroke-width="1.3"/>
+  <rect x="484" y="950" width="432" height="26" rx="10" fill="#059669"/>
+  <rect x="484" y="964" width="432" height="12" fill="#059669"/>
+  <text x="496" y="968" fill="#ffffff" font-size="12" font-weight="700">notifications / {notificationId}</text>
+  <text x="496" y="993" fill="#0f172a" font-size="11"><tspan font-weight="700" fill="#047857">PK</tspan>  notificationId</text>
+  <text x="496" y="1010" fill="#334155" font-size="11"><tspan font-weight="700" fill="#0369a1">FK</tspan>  parentUid -&gt; users  |  idSiswa -&gt; students</text>
+  <text x="496" y="1027" fill="#334155" font-size="11">judul (&lt;=140), pesan (&lt;=500)</text>
+  <text x="496" y="1044" fill="#334155" font-size="11">kategori : Absensi 3x | Pendaftaran | Tagihan | Keringanan</text>
+  <text x="496" y="1061" fill="#334155" font-size="11">sudahDibaca : boolean (dapat diubah parentUid)</text>
+  <text x="496" y="1108" fill="#64748b" font-size="10">createdAt : timestamp</text>
+
+  <!-- ==================== ZONE 4: KEUANGAN, KUITANSI & KERINGANAN ==================== -->
+  <rect x="948" y="468" width="468" height="670" rx="14" fill="#ffffff" stroke="#fcd34d" stroke-width="1.5"/>
+  <rect x="948" y="468" width="468" height="32" rx="14" fill="#fef3c7"/>
+  <rect x="948" y="486" width="468" height="14" fill="#fef3c7"/>
+  <text x="966" y="489" fill="#92400e" font-size="12.5" font-weight="700" letter-spacing="0.4">D. KEUANGAN, KUITANSI &amp; KERINGANAN (4 KOLEKSI)</text>
+
+  <!-- invoices -->
+  <rect x="964" y="514" width="436" height="156" rx="10" fill="#fffbeb" stroke="#f59e0b" stroke-width="1.3"/>
+  <rect x="964" y="514" width="436" height="26" rx="10" fill="#d97706"/>
+  <rect x="964" y="528" width="436" height="12" fill="#d97706"/>
+  <text x="976" y="532" fill="#ffffff" font-size="12" font-weight="700">invoices / {invoiceId}</text>
+  <text x="976" y="556" fill="#0f172a" font-size="11"><tspan font-weight="700" fill="#b45309">PK</tspan>  invoiceId</text>
+  <text x="976" y="573" fill="#334155" font-size="11"><tspan font-weight="700" fill="#0369a1">FK</tspan>  parentUid, idSiswa, idProgram</text>
+  <text x="976" y="590" fill="#334155" font-size="11">namaSiswa, namaProgram, bulan (1..12), tahun, periodeLabel</text>
+  <text x="976" y="607" fill="#334155" font-size="11">nominalDasar, diskonPersen (0|10), nominalDiskon, jumlahTagihan</text>
+  <text x="976" y="624" fill="#334155" font-size="11">jatuhTempo  |  statusTagihan : Belum Bayar | Lunas | Tunggakan</text>
+  <text x="976" y="654" fill="#64748b" font-size="10">createdAt, updatedAt</text>
+
+  <!-- payments -->
+  <rect x="964" y="682" width="436" height="134" rx="10" fill="#fffbeb" stroke="#f59e0b" stroke-width="1.3"/>
+  <rect x="964" y="682" width="436" height="26" rx="10" fill="#d97706"/>
+  <rect x="964" y="696" width="436" height="12" fill="#d97706"/>
+  <text x="976" y="700" fill="#ffffff" font-size="12" font-weight="700">payments / {paymentId}</text>
+  <text x="976" y="724" fill="#0f172a" font-size="11"><tspan font-weight="700" fill="#b45309">PK</tspan>  paymentId</text>
+  <text x="976" y="741" fill="#334155" font-size="11"><tspan font-weight="700" fill="#0369a1">FK</tspan>  parentUid, idTagihan -&gt; invoices, idSiswa</text>
+  <text x="976" y="758" fill="#334155" font-size="11">jenisPembayaran (SPP|Pendaftaran), jumlahBayar, metodeBayar</text>
+  <text x="976" y="775" fill="#334155" font-size="11">tanggalBayar, dicatatOleh, nomorKuitansi (KW-BC-...)</text>
+  <text x="976" y="802" fill="#64748b" font-size="10">createdAt : timestamp (Hanya Admin dapat mencatat)</text>
+
+  <!-- receipts -->
+  <rect x="964" y="828" width="436" height="138" rx="10" fill="#fffbeb" stroke="#f59e0b" stroke-width="1.3"/>
+  <rect x="964" y="828" width="436" height="26" rx="10" fill="#d97706"/>
+  <rect x="964" y="842" width="436" height="12" fill="#d97706"/>
+  <text x="976" y="846" fill="#ffffff" font-size="12" font-weight="700">receipts / {receiptId}</text>
+  <text x="976" y="870" fill="#0f172a" font-size="11"><tspan font-weight="700" fill="#b45309">PK</tspan>  receiptId  |  nomorKuitansi</text>
+  <text x="976" y="887" fill="#334155" font-size="11"><tspan font-weight="700" fill="#0369a1">FK</tspan>  parentUid, idPembayaran -&gt; payments, idTagihan</text>
+  <text x="976" y="904" fill="#334155" font-size="11">namaSiswa, namaOrangTua, jenisPembayaran, periode</text>
+  <text x="976" y="921" fill="#334155" font-size="11">nominalDasar, diskonPersen, jumlahBayar, metodeBayar</text>
+  <text x="976" y="938" fill="#334155" font-size="11">tanggalBayar, adminPencatat</text>
+  <text x="976" y="956" fill="#64748b" font-size="10">createdAt : timestamp</text>
+
+  <!-- relief_requests -->
+  <rect x="964" y="978" width="436" height="144" rx="10" fill="#fffbeb" stroke="#f59e0b" stroke-width="1.3"/>
+  <rect x="964" y="978" width="436" height="26" rx="10" fill="#d97706"/>
+  <rect x="964" y="992" width="436" height="12" fill="#d97706"/>
+  <text x="976" y="996" fill="#ffffff" font-size="12" font-weight="700">relief_requests / {reliefId}</text>
+  <text x="976" y="1020" fill="#0f172a" font-size="11"><tspan font-weight="700" fill="#b45309">PK</tspan>  reliefId</text>
+  <text x="976" y="1037" fill="#334155" font-size="11"><tspan font-weight="700" fill="#0369a1">FK</tspan>  parentUid, idTagihan -&gt; invoices, idSiswa</text>
+  <text x="976" y="1054" fill="#334155" font-size="11">namaSiswa, periode, jumlahTagihan, alasan (5..500 char)</text>
+  <text x="976" y="1071" fill="#334155" font-size="11">jenisPengajuan : Keringanan Nominal | Penundaan Jatuh Tempo</text>
+  <text x="976" y="1088" fill="#334155" font-size="11">statusKeputusan : Menunggu | Disetujui | Ditolak (Pemilik)</text>
+  <text x="976" y="1110" fill="#64748b" font-size="10">catatanPemilik?, tanggalPengajuan, tanggalKeputusan?, createdAt, updatedAt</text>
+
+  <!-- ==================== RELATIONSHIP CONNECTORS ==================== -->
+  <!-- programs -> classes -->
+  <line x1="722" y1="222" x2="734" y2="222" stroke="#2563eb" stroke-width="1.6" marker-end="url(#relBlue)"/>
+  <!-- classes -> schedules -->
+  <line x1="958" y1="222" x2="970" y2="222" stroke="#2563eb" stroke-width="1.6" marker-end="url(#relBlue)"/>
+  <!-- tutors -> schedules -->
+  <line x1="1200" y1="240" x2="1188" y2="240" stroke="#2563eb" stroke-width="1.6" marker-end="url(#relBlue)"/>
+  <!-- students -> registrations -->
+  <line x1="324" y1="590" x2="336" y2="590" stroke="#059669" stroke-width="1.6" marker-end="url(#relEmerald)"/>
+  <!-- students -> waitlists -->
+  <path d="M 324 555 L 332 555 L 332 505 L 628 505 L 628 590 L 634 590" fill="none" stroke="#059669" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#relEmerald)"/>
+  <!-- invoices -> payments -->
+  <line x1="1182" y1="670" x2="1182" y2="680" stroke="#d97706" stroke-width="1.6" marker-end="url(#relAmber)"/>
+  <!-- payments -> receipts -->
+  <line x1="1182" y1="816" x2="1182" y2="826" stroke="#d97706" stroke-width="1.6" marker-end="url(#relAmber)"/>
+  <!-- invoices -> relief_requests -->
+  <path d="M 1400 595 L 1408 595 L 1408 1037 L 1402 1037" fill="none" stroke="#d97706" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#relAmber)"/>
+  <!-- users -> students -->
+  <line x1="182" y1="296" x2="182" y2="512" stroke="#2563eb" stroke-width="1.6" stroke-dasharray="5 3" marker-end="url(#relBlue)"/>
+
+  <!-- Footer Legend -->
+  <rect x="24" y="1152" width="1392" height="32" rx="8" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="44" y="1172" fill="#334155" font-size="11.5" font-weight="600">Legenda:  PK = Document ID / Primary Key   •   FK = Referensi ID Antar-Koleksi (NoSQL)   •   ? = Field Opsional   •   Semua operasi tulis divalidasi oleh firestore.rules (wajib email_verified == true)</text>
+</svg>
