@@ -1,7 +1,10 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import type { AddressInfo } from 'node:net';
+import path from 'node:path';
 import express from 'express';
+import vercelApiApp from '../api/index.ts';
 import { createApiRouter } from '../server/apiRouter.ts';
 import {
   calculateSppInvoice,
@@ -455,6 +458,10 @@ describe('Pengujian REST API Endpoints Bimbel Cerdas', () => {
       const unauthColRes = await fetch(`${base}/collections/invoices`);
       assert.equal(unauthColRes.status, 401);
 
+      const unauthStudentsRes = await fetch(`${base}/collections/students`);
+      assert.equal(unauthStudentsRes.status, 401);
+      assert.match(unauthStudentsRes.headers.get('content-type') || '', /application\/json/);
+
       const invalidDomainRes = await fetch(`${base}/validate-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -480,6 +487,35 @@ describe('Pengujian REST API Endpoints Bimbel Cerdas', () => {
     } finally {
       await new Promise<void>((resolve, reject) => {
         server.close((err) => (err ? reject(err) : resolve()));
+      });
+    }
+  });
+
+  it('memastikan entrypoint Vercel api/index.ts & vercel.json meneruskan route multi-segmen /api/collections/students', async () => {
+    const vercelCfg = JSON.parse(
+      fs.readFileSync(path.resolve(process.cwd(), 'vercel.json'), 'utf-8')
+    ) as { rewrites?: Array<{ source: string; destination: string }> };
+    const apiRewrite = vercelCfg.rewrites?.find((r) => r.source === '/api/(.*)');
+    assert.ok(apiRewrite, 'vercel.json harus memiliki rewrite /api/(.*)');
+    assert.equal(apiRewrite.destination, '/api');
+    assert.equal(fs.existsSync(path.resolve(process.cwd(), 'api/index.ts')), true);
+    assert.equal(fs.existsSync(path.resolve(process.cwd(), 'api/[...route].ts')), false);
+
+    const vServer = await new Promise<ReturnType<typeof vercelApiApp.listen>>((resolve) => {
+      const s = vercelApiApp.listen(0, '127.0.0.1', () => resolve(s));
+    });
+    try {
+      const { port } = vServer.address() as AddressInfo;
+      const resWithPrefix = await fetch(`http://127.0.0.1:${port}/api/collections/students`);
+      assert.equal(resWithPrefix.status, 401);
+      assert.match(resWithPrefix.headers.get('content-type') || '', /application\/json/);
+
+      const resStrippedPrefix = await fetch(`http://127.0.0.1:${port}/collections/students`);
+      assert.equal(resStrippedPrefix.status, 401);
+      assert.match(resStrippedPrefix.headers.get('content-type') || '', /application\/json/);
+    } finally {
+      await new Promise<void>((resolve, reject) => {
+        vServer.close((err) => (err ? reject(err) : resolve()));
       });
     }
   });
